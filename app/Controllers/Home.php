@@ -12,4 +12,15 @@ class Home extends BaseController
 
         return view('main', $data);
     }
+
+    public function profile(): string
+    {
+        $data = [
+            'content' => view('User/profile', [
+                'user' => session()->get('auth_user'),
+            ]),
+        ];
+
+        return view('main', $data);
+    }
 }

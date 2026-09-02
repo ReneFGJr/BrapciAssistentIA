@@ -1,3 +1,10 @@
+<?php
+$footerUser = session()->get('auth_user');
+$footerGivenName = session()->get('logged_in') && is_array($footerUser)
+    ? ($footerUser['givenName'] ?? null)
+    : null;
+?>
+
 <!-- =====================================================
              FOOTER
 ====================================================== -->
@@ -14,6 +21,22 @@
         TEMPO DO SERVIDOR<br>
         <strong id="server-clock">--:--:--</strong>
     </div>
+
+    <div>
+        MENSAGEM<br>
+        <strong id="footer-message">none</strong>
+    </div>
+
+    <?php if ($footerGivenName): ?>
+        <div>
+            USUÁRIO<br>
+            <strong>
+                <a class="footer-profile-link" href="<?= site_url('profile') ?>">
+                    <?= esc($footerGivenName) ?>
+                </a>
+            </strong>
+        </div>
+    <?php endif; ?>
 
     <div>
         VERSÃO DO SISTEMA<br>
