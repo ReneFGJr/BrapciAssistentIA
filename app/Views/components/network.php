@@ -1,0 +1,1 @@
+<?php include '_style.php'; ?><div class="card" style="text-align:center;padding:35px 10px"><div style="font-size:50px;color:#00d9ff">◎</div><strong>REDE PRINCIPAL</strong><p class="ok">ONLINE • 18 ms</p></div>

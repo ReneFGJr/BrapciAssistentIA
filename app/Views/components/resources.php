@@ -1,0 +1,1 @@
+<?php include '_style.php'; foreach(['CPU'=>23,'MEMÓRIA'=>45,'DISCO'=>62,'REDE'=>18] as $k=>$v):?><div class="card"><strong><?=$k?> — <?=$v?>%</strong><div class="bar"><span style="width:<?=$v?>%"></span></div></div><?php endforeach;?>

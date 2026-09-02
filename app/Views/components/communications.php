@@ -1,0 +1,1 @@
+<?php include '_style.php'; ?><div class="card"><strong>CANAL ATIVO</strong><p>ASSISTENTE • CANAL 07</p><div class="bar"><span style="width:72%"></span></div></div><button style="width:100%;padding:10px;background:#071322;color:#d54cff;border:1px solid #d54cff;border-radius:6px">CONECTAR AO CANAL</button>

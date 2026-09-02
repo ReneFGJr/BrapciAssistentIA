@@ -1,0 +1,1 @@
+<?php include '_style.php'; foreach(['CPU'=>'23%','MEMÓRIA'=>'45%','DISCO'=>'62%','REDE'=>'18%','SERVIÇOS'=>'12/15 ONLINE','UPTIME'=>'15d 07:42:11'] as $k=>$v):?><div class="metric"><span><?=$k?></span><strong class="ok"><?=$v?></strong></div><?php endforeach;?>

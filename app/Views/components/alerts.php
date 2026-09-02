@@ -1,0 +1,1 @@
+<?php include '_style.php'; ?><div class="card warn">⚠ Uso de disco acima de 60%</div><div class="card ok">✓ Backup concluído com sucesso</div><div class="card">ⓘ Atualização de segurança disponível</div><div class="card bad">✕ Falha ao conectar serviço externo</div>
