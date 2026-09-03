@@ -1,32 +1,27 @@
-        <!-- =========================================================
-         BARRA LATERAL
-    ========================================================== -->
-        <aside class="astra-sidebar">
-
-            <a href="#" class="sidebar-button active">
-                <i class="bi bi-house-fill"></i>
+<!-- =========================================================
+    BARRA LATERAL
+========================================================== -->
+<?php
+$menu = [];
+$menu[] = ['name' => 'Home', 'url' => base_url(), 'class' => 'bi-house-fill'];
+$menu[] = ['name' => 'Dashboard', 'url' => base_url(), 'class' => 'bi-grid-fill'];
+$menu[] = ['name' => 'Configurações', 'url' => base_url(), 'class' => 'bi-graph-up'];
+$menu[] = ['name' => 'Produtos', 'url' => base_url(), 'class' => 'bi-box-fill'];
+$menu[] = ['name' => 'Vendas', 'url' => base_url(), 'class' => 'bi-box-arrow-in-up'];
+$menu[] = ['name' => 'Setup', 'url' => base_url(), 'class' => 'bi-gear-fill'];
+?>
+<aside class="astra-sidebar">
+    <?php if (session('logged_in') === true): ?>
+        <?php foreach ($menu as $item): ?>
+            <a href="<?= $item['url'] ?>" class="sidebar-button">
+                <i class="bi <?= $item['class'] ?>"></i>
             </a>
+        <?php endforeach; ?>
 
-            <a href="#" class="sidebar-button">
-                <i class="bi bi-grid-fill"></i>
-            </a>
+        <div class="sidebar-spacer"></div>
 
-            <a href="#" class="sidebar-button">
-                <i class="bi bi-graph-up"></i>
-            </a>
-
-            <a href="#" class="sidebar-button">
-                <i class="bi bi-database-fill"></i>
-            </a>
-
-            <a href="#" class="sidebar-button">
-                <i class="bi bi-gear-fill"></i>
-            </a>
-
-            <div class="sidebar-spacer"></div>
-
-            <a href="#" class="sidebar-button">
-                <i class="bi bi-question-circle"></i>
-            </a>
-
-        </aside>
+        <a href="<?= base_url() ?>" class="sidebar-button">
+            <i class="bi bi-question-circle"></i>
+        </a>
+    <?php endif; ?>
+</aside>
