@@ -33,6 +33,37 @@
             }
         }
 
+        const noteTitleFilter = document.getElementById('note-title-filter');
+        if (noteTitleFilter) {
+            const noteItems = [...document.querySelectorAll('[data-note-item]')];
+            const emptyResult = document.querySelector('[data-note-filter-empty]');
+
+            noteTitleFilter.addEventListener('input', () => {
+                const query = noteTitleFilter.value.trim().toLocaleLowerCase('pt-BR');
+                let visibleItems = 0;
+
+                noteItems.forEach((item) => {
+                    const title = (item.dataset.noteTitle || '').toLocaleLowerCase('pt-BR');
+                    const visible = title.includes(query);
+                    item.hidden = !visible;
+                    if (visible) visibleItems++;
+                });
+
+                if (emptyResult) emptyResult.hidden = visibleItems !== 0;
+            });
+        }
+
+        document.querySelectorAll('[data-auto-grow]').forEach((textarea) => {
+            textarea.style.height = 'auto';
+            textarea.style.height = textarea.scrollHeight + 'px';
+        });
+
+        document.querySelectorAll('[data-confirm-delete]').forEach((form) => {
+            form.addEventListener('submit', (event) => {
+                if (!window.confirm('Deseja excluir esta anotação?')) event.preventDefault();
+            });
+        });
+
         const screen = document.getElementById('signin-screen');
         const login = document.getElementById('login');
         if (!screen || !login) return;

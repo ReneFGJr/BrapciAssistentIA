@@ -8,6 +8,7 @@ $menu[] = ['name' => 'Dashboard', 'url' => base_url().'dashboard', 'class' => 'b
 $menu[] = ['name' => 'Configurações', 'url' => base_url(), 'class' => 'bi-graph-up'];
 $menu[] = ['name' => 'Produtos', 'url' => base_url(), 'class' => 'bi-box-fill'];
 $menu[] = ['name' => 'Vendas', 'url' => base_url(), 'class' => 'bi-box-arrow-in-up'];
+$menu[] = ['name' => 'Anotações', 'url' => base_url().'notepad', 'class' => 'bi-journal-text'];
 $menu[] = ['name' => 'Chat', 'url' => base_url().'chat', 'class' => 'bi-chat-dots-fill'];
 $menu[] = ['name' => 'Setup', 'url' => base_url(), 'class' => 'bi-gear-fill'];
 ?>
