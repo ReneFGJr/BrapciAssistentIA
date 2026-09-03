@@ -60,7 +60,7 @@
 
         document.querySelectorAll('[data-confirm-delete]').forEach((form) => {
             form.addEventListener('submit', (event) => {
-                if (!window.confirm('Deseja excluir esta anotação?')) event.preventDefault();
+                if (!window.confirm(form.dataset.confirmDelete || 'Deseja excluir este registro?')) event.preventDefault();
             });
         });
 

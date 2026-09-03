@@ -2,6 +2,7 @@
 
 namespace Config;
 
+use App\Filters\AdminFilter;
 use App\Filters\AuthFilter;
 
 use CodeIgniter\Config\Filters as BaseFilters;
@@ -29,6 +30,7 @@ class Filters extends BaseFilters
     public array $aliases = [
         'csrf'          => CSRF::class,
         'auth'          => AuthFilter::class,
+        'admin'         => AdminFilter::class,
         'toolbar'       => DebugToolbar::class,
         'honeypot'      => Honeypot::class,
         'invalidchars'  => InvalidChars::class,

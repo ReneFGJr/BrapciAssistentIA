@@ -16,3 +16,8 @@ $routes->get('notepad', 'Notepad::index', ['filter' => 'auth']);
 $routes->post('notepad', 'Notepad::create', ['filter' => ['auth', 'csrf']]);
 $routes->post('notepad/(:num)/update', 'Notepad::update/$1', ['filter' => ['auth', 'csrf']]);
 $routes->post('notepad/(:num)/delete', 'Notepad::delete/$1', ['filter' => ['auth', 'csrf']]);
+
+$routes->get('dashboard/admin', 'AdminApps::index', ['filter' => ['auth', 'admin']]);
+$routes->post('dashboard/admin/apps', 'AdminApps::create', ['filter' => ['auth', 'admin', 'csrf']]);
+$routes->post('dashboard/admin/apps/(:num)/update', 'AdminApps::update/$1', ['filter' => ['auth', 'admin', 'csrf']]);
+$routes->post('dashboard/admin/apps/(:num)/delete', 'AdminApps::delete/$1', ['filter' => ['auth', 'admin', 'csrf']]);
