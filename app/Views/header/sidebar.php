@@ -4,10 +4,11 @@
 <?php
 $menu = [];
 $menu[] = ['name' => 'Home', 'url' => base_url(), 'class' => 'bi-house-fill'];
-$menu[] = ['name' => 'Dashboard', 'url' => base_url(), 'class' => 'bi-grid-fill'];
+$menu[] = ['name' => 'Dashboard', 'url' => base_url().'dashboard', 'class' => 'bi-grid-fill'];
 $menu[] = ['name' => 'Configurações', 'url' => base_url(), 'class' => 'bi-graph-up'];
 $menu[] = ['name' => 'Produtos', 'url' => base_url(), 'class' => 'bi-box-fill'];
 $menu[] = ['name' => 'Vendas', 'url' => base_url(), 'class' => 'bi-box-arrow-in-up'];
+$menu[] = ['name' => 'Chat', 'url' => base_url().'chat', 'class' => 'bi-chat-dots-fill'];
 $menu[] = ['name' => 'Setup', 'url' => base_url(), 'class' => 'bi-gear-fill'];
 ?>
 <aside class="astra-sidebar">
