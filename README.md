@@ -1,61 +1,280 @@
-# CodeIgniter 4 Framework
+# Brapci Assistente IA
 
-## What is CodeIgniter?
+Aplicação web da Brapci para organizar pessoas, instituições, tarefas, anotações e acesso a aplicativos. Desenvolvida em PHP com CodeIgniter 4, Bootstrap e autenticação externa da Brapci.
 
-CodeIgniter is a PHP full-stack web framework that is light, fast, flexible and secure.
-More information can be found at the [official site](https://codeigniter.com).
+## Funcionalidades
 
-This repository holds the distributable version of the framework.
-It has been built from the
-[development repository](https://github.com/codeigniter4/CodeIgniter4).
+### Pessoas
 
-More information about the plans for version 4 can be found in [CodeIgniter 4](https://forum.codeigniter.com/forumdisplay.php?fid=28) on the forums.
+- Listagem paginada, busca por nome ou apelido e coluna de celular.
+- Cadastro e edição de nome, apelido, CPF, telefones, e-mails e vínculo institucional.
+- Busca de cadastros na base Brapci antes da inclusão.
+- Compartilhamento por e-mail com leitura ou edição, expiração opcional e revogação pelo proprietário.
+- Cópia de e-mail para a área de transferência e links de WhatsApp.
+- Fotografia circular com botão de câmera e upload automático.
+- Importação de contatos pelo arquivo `_Documments/contacts.csv`.
 
-You can read the [user guide](https://codeigniter.com/user_guide/)
-corresponding to the latest version of the framework.
+Os usuários visualizam apenas pessoas para as quais possuem acesso válido, registrado em `persons_user`.
 
-## Important Change with index.php
+### Instituições
 
-`index.php` is no longer in the root of the project! It has been moved inside the *public* folder,
-for better security and separation of components.
+- Listagem paginada, visualização e edição por ícones.
+- Cadastro manual ou preenchimento após selecionar um resultado da API v2 do ROR.
+- Nome, sigla, identificador ROR, endereço, cidade, estado, país, coordenadas e ano de fundação.
+- Identificador ROR único para evitar duplicação.
 
-This means that you should configure your web server to "point" to your project's *public* folder, and
-not to the project root. A better practice would be to configure a virtual host to point there. A poor practice would be to point your web server to the project root and expect to enter *public/...*, as the rest of your logic and the
-framework are exposed.
+As instituições são compartilhadas entre os usuários autenticados e podem ser vinculadas às pessoas.
 
-**Please** read the user guide for a better explanation of how CI4 works!
+### Kanban
 
-## Repository Management
+Quadro pessoal com cartões estilo post-it, botão **+** para inserir e ícone de lápis para editar. Cada cartão possui título, descrição, status e prioridade. O status é alterado pelo formulário de edição.
 
-We use GitHub issues, in our main repository, to track **BUGS** and to track approved **DEVELOPMENT** work packages.
-We use our [forum](http://forum.codeigniter.com) to provide SUPPORT and to discuss
-FEATURE REQUESTS.
+| Status | Exibição |
+| --- | --- |
+| To DO | Visível |
+| Doing | Visível |
+| Check | Visível |
+| Close | Oculto; o cartão permanece salvo |
 
-This repository is a "distribution" one, built by our release preparation script.
-Problems with it can be raised on our forum, or as issues in the main repository.
+| Prioridade | Cor do cartão |
+| --- | --- |
+| Sem pressa | Verde |
+| Normal | Amarelo |
+| Urgente | Rosa/vermelho |
 
-## Contributing
+Cada usuário acessa somente seus próprios cartões.
 
-We welcome contributions from the community.
+### Outros módulos
 
-Please read the [*Contributing to CodeIgniter*](https://github.com/codeigniter4/CodeIgniter4/blob/develop/CONTRIBUTING.md) section in the development repository.
+- **Dashboard:** aplicativos disponíveis para o usuário.
+- **Administração:** cadastro de aplicativos e permissões de acesso.
+- **Perfil:** informações do usuário autenticado.
+- **Anotações:** registros pessoais com título e conteúdo criptografados.
+- **Chat:** envio de mensagens a um serviço externo configurável.
+- **Interface:** tema escuro, menu lateral, paginação Bootstrap e mensagens de status no rodapé.
 
-## Server Requirements
+## Tecnologias e requisitos
 
-PHP version 8.2 or higher is required, with the following extensions installed:
+- PHP **8.2 ou superior**, conforme `composer.json`.
+- CodeIgniter 4, incluído em `system/`.
+- MySQL com driver `MySQLi` e codificação `utf8mb4`.
+- Bootstrap 5.3.8 e Bootstrap Icons 1.13.1, carregados por CDN.
+- JavaScript e CSS em `public/assets/`.
+- Composer para instalar dependências PHP.
 
-- [intl](http://php.net/manual/en/intl.requirements.php)
-- [mbstring](http://php.net/manual/en/mbstring.installation.php)
+Extensões utilizadas: `intl`, `mbstring`, `mysqli`, `curl`, `openssl`, `fileinfo` e `gd`. Os testes de banco também precisam de `sqlite3`.
 
-> [!WARNING]
-> - The end of life date for PHP 7.4 was November 28, 2022.
-> - The end of life date for PHP 8.0 was November 26, 2023.
-> - The end of life date for PHP 8.1 was December 31, 2025.
-> - If you are still using below PHP 8.2, you should upgrade immediately.
-> - The end of life date for PHP 8.2 will be December 31, 2026.
+## Instalação
 
-Additionally, make sure that the following extensions are enabled in your PHP:
+1. Instale as dependências na raiz do projeto:
 
-- json (enabled by default - don't turn it off)
-- [mysqlnd](http://php.net/manual/en/mysqlnd.install.php) if you plan to use MySQL
-- [libcurl](http://php.net/manual/en/curl.requirements.php) if you plan to use the HTTP\CURLRequest library
+   ```sh
+   composer install
+   ```
+
+2. Copie `env` para `.env` caso ainda não exista. No PowerShell:
+
+   ```powershell
+   Copy-Item env .env
+   ```
+
+   Não substitua um `.env` já configurado.
+
+3. Crie o banco MySQL e configure a conexão no `.env`.
+
+4. Gere a chave das anotações na primeira instalação:
+
+   ```sh
+   php spark key:generate
+   ```
+
+   Preserve a chave e seu backup: as anotações existentes dependem dela para serem lidas.
+
+5. Confira e aplique as migrações:
+
+   ```sh
+   php spark migrate:status
+   php spark migrate
+   ```
+
+6. Configure a raiz do servidor web para **`public/`**. O PHP precisa de escrita em `writable/` e em `public/repository/photo/`, criado durante o primeiro upload.
+
+Para desenvolvimento, pode-se usar `php spark serve`. Ajuste `app.baseURL` ao endereço apresentado pelo comando.
+
+### Exemplo de configuração local
+
+```ini
+CI_ENVIRONMENT = development
+app.baseURL = 'http://assistentia/'
+app.indexPage = 'index.php'
+
+database.default.hostname = localhost
+database.default.database = assistentia
+database.default.username = usuario_do_banco
+database.default.password = sua_senha
+database.default.DBDriver = MySQLi
+database.default.port = 3306
+
+legacyAuth.endpoint = 'https://cip.brapci.inf.br/api/socials/signin'
+
+# Ajuste os caminhos ao servidor.
+legacyAuth.caBundle = 'D:/wamp64/cert/cacert.pem'
+ror.caBundle = 'D:/wamp64/cert/cacert.pem'
+
+# Opcionais:
+# chat.endpoint = 'https://seu-servico.example/chat'
+# admin.allowedUserIds = 'id1,id2'
+```
+
+Em produção, use `CI_ENVIRONMENT = production` e a URL pública, incluindo o subdiretório da instalação quando houver, por exemplo `https://cip.brapci.inf.br/sudo/`.
+
+Não versione credenciais nem a chave de criptografia. `admin.allowedUserIds` aceita IDs separados por vírgula; a aplicação também reconhece o atributo administrativo do usuário autenticado.
+
+### Certificados HTTPS
+
+O PHP da linha de comando e o PHP do Apache podem carregar arquivos INI diferentes. Configure o arquivo efetivamente usado pelo servidor web:
+
+```ini
+curl.cainfo = "D:/wamp64/cert/cacert.pem"
+openssl.cafile = "D:/wamp64/cert/cacert.pem"
+```
+
+Após modificar o INI, reinicie o Apache pelo painel do Wamp. Ajuste o caminho conforme o ambiente.
+
+- `legacyAuth.caBundle` define o arquivo de certificados do login; quando omitido, usa `curl.cainfo`.
+- `ror.caBundle` permite definir o arquivo diretamente para as consultas ao ROR.
+- A validação HTTPS permanece ativa.
+
+O erro `SSL certificate problem: unable to get local issuer certificate` indica falha na validação da cadeia de confiança. Confira o arquivo CA, sua leitura pelo PHP e a configuração do servidor web.
+
+## Rotas principais
+
+As rotas são relativas à URL base. Com `app.indexPage = 'index.php'`, `/person` corresponde a `/index.php/person`.
+
+| Método | Rota | Finalidade |
+| --- | --- | --- |
+| GET | `/` | Página inicial/login |
+| POST | `/signin`, `/logout` | Autenticação e saída |
+| GET | `/profile` | Perfil |
+| GET | `/dashboard` | Aplicativos do usuário |
+| GET | `/dashboard/admin` | Administração |
+| GET | `/person` | Listagem e busca de pessoas |
+| GET | `/person/new` | Busca e novo cadastro |
+| POST | `/person` | Salvar pessoa |
+| GET | `/person/{id}` | Visualizar pessoa |
+| GET | `/person/{id}/edit` | Formulário de edição |
+| POST | `/person/{id}/update` | Salvar alterações |
+| POST | `/person/{id}/photo` | Atualizar fotografia |
+| POST | `/person/{id}/share` | Compartilhar acesso |
+| POST | `/person/{id}/shares/{grantId}/revoke` | Revogar acesso |
+| POST | `/person/import` | Importar contatos |
+| GET | `/corporatebody` | Listar instituições |
+| GET | `/corporatebody/new` | Cadastro e busca ROR |
+| POST | `/corporatebody` | Salvar instituição |
+| GET | `/corporatebody/{id}` | Visualizar instituição |
+| GET | `/corporatebody/{id}/edit` | Editar instituição |
+| POST | `/corporatebody/{id}/update` | Salvar alterações |
+| GET | `/kanban` | Quadro pessoal |
+| GET | `/kanban/new` | Novo cartão |
+| POST | `/kanban` | Salvar cartão |
+| GET | `/kanban/{id}/edit` | Editar cartão |
+| POST | `/kanban/{id}/update` | Salvar alterações |
+| GET | `/notepad` | Anotações pessoais |
+| GET | `/chat` | Interface do chat |
+| POST | `/chat/messages` | Enviar mensagem |
+
+Os módulos exigem autenticação. Operações POST são protegidas por CSRF; a administração também exige o filtro `admin`. A lista completa está em [app/Config/Routes.php](app/Config/Routes.php).
+
+## Importação de contatos
+
+O botão **Importar** na listagem de pessoas lê `_Documments/contacts.csv` no servidor. O arquivo deve estar no formato de exportação de contatos Google, com cabeçalho, separador vírgula e texto UTF-8.
+
+- Importa nome, apelido, até dois e-mails e dois telefones.
+- Vincula os registros ao usuário conectado com acesso permanente de edição.
+- Reconhece contatos do usuário pelo nome completo (ignorando maiúsculas e espaços repetidos) ou telefone normalizado, evitando novas duplicatas. Correspondências com mais de um cadastro são sinalizadas sem atribuir uma foto automaticamente.
+- Informa totais importados, duplicados e inválidos.
+- Usa transação para desfazer as inserções da tentativa em caso de falha de processamento ou gravação.
+
+A coluna Photo importa imagens HTTPS de lh*.googleusercontent.com, convertidas para JPEG com nome MD5 aleatório. Contatos existentes recebem a foto somente quando não possuem uma. Fotos indisponíveis são contabilizadas separadamente, sem desfazer a importação dos contatos; links com falha aguardam cinco minutos antes de nova tentativa. O download é limitado por execução: se houver fotos pendentes, clique em **Importar** novamente para continuar. Fotografias são processadas após a transação dos contatos. Notas e outros campos não mapeados não são importados. O arquivo pode conter dados pessoais e deve permanecer fora da raiz pública.
+
+## Fotografias
+
+São aceitos JPG, PNG e WebP de até **5 MB** e **16 megapixels**. A imagem é convertida para JPEG, limitada a 1200 pixels no maior lado.
+
+Os arquivos são salvos em `public/repository/photo/<md5-gerado-com-dados-aleatorios>.jpg`. O nome não deriva do ID da pessoa. O upload exige permissão de edição.
+
+As fotografias ficam na pasta pública; um nome imprevisível não equivale a controle de acesso ao arquivo.
+
+## Banco de dados e integrações
+
+| Tabela | Uso |
+| --- | --- |
+| `persons` | Dados pessoais e referência da fotografia |
+| `persons_user` | Propriedade e compartilhamento de cadastros |
+| `institutions` | Instituições e dados ROR |
+| `kanban_items` | Cartões vinculados ao usuário |
+| `user_notes` | Anotações criptografadas |
+
+Também existem migrações para registros de login, aplicativos e permissões. Os IDs de usuário vêm da autenticação externa.
+
+A busca de pessoas na Brapci consulta **`brapci.users`** pela conexão MySQL configurada. Essa tabela externa não é criada pelas migrações; o usuário do banco precisa de permissão de leitura para essa funcionalidade.
+
+O chat envia a mensagem e os dados de sessão do usuário ao endereço definido em `chat.endpoint`. Sem essa configuração, o envio retorna serviço não configurado.
+
+## Estrutura
+
+```text
+app/
+  Config/                 Configurações, rotas e filtros
+  Controllers/            Fluxos HTTP
+  Database/Migrations/    Evolução do banco
+  Filters/                Autenticação e administração
+  Libraries/              Integrações, importação e permissões
+  Models/                 Acesso e validação de dados
+  Views/                  Templates das páginas
+public/
+  assets/css/             Estilos e tipografia
+  assets/js/              Comportamentos da interface
+  repository/photo/       Fotografias
+system/                   Framework CodeIgniter
+tests/                    Testes automatizados
+writable/                 Logs, cache e sessões
+_Documments/               Documentos e CSV
+```
+
+## Testes
+
+Execute na raiz do projeto:
+
+```sh
+php tests/person_access.php
+php tests/person_lookup.php
+php tests/person_import.php
+php tests/person_photo.php
+php tests/institutions.php
+php tests/corporatebody.php
+php tests/kanban.php
+```
+
+Os testes de dados usam bancos SQLite isolados. O teste de importação também lê `_Documments/contacts.csv`; o teste de fotografia utiliza GD e arquivos temporários.
+
+Para consultar o ROR real, com acesso à internet e certificados configurados:
+
+```sh
+php tests/corporatebody.php --live
+```
+
+Os testes verificam permissões, isolamento por usuário, validação, importação, fotografias e renderização de componentes. Não substituem a revisão visual no navegador.
+
+## Operação
+
+- Consulte `writable/logs/` para investigar erros.
+- Use `php spark routes` para conferir as rotas e `php spark migrate:status` para consultar as migrações.
+- O CSS principal recebe versão baseada na alteração do arquivo para evitar estilos antigos em cache.
+- Bootstrap e seus ícones dependem de acesso à CDN.
+- Faça backup do banco, das fotografias e da chave de criptografia antes de atualizar a instalação.
+- Ao publicar alterações com novas migrações, execute `php spark migrate` no ambiente de destino.
+
+## Licença
+
+O repositório inclui a licença MIT em [LICENSE](LICENSE).

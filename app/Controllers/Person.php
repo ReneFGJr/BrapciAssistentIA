@@ -32,8 +32,8 @@ class Person extends BaseController
         try {
             $result = (new \App\Libraries\PersonImportService())->import(ROOTPATH . '_Documments/contacts.csv', $this->actor());
             return redirect()->to('/person')->with('success', sprintf(
-                'Importação concluída: %d importados, %d já existentes e %d inválidos. Campos importados: nome, apelido, até dois e-mails e dois telefones.',
-                $result['imported'], $result['duplicates'], $result['invalid']
+                'Importação: %d novos, %d existentes, %d inválidos. Fotos: %d salvas, %d indisponíveis e %d pendentes (clique em Importar novamente para continuar). %d contatos com correspondência ambígua.',
+                $result['imported'], $result['duplicates'], $result['invalid'], $result['photos'], $result['photo_errors'], $result['photo_pending'], $result['ambiguous']
             ));
         } catch (Throwable $exception) {
             log_message('error', 'Erro ao importar pessoas: {message}', ['message' => $exception->getMessage()]);
