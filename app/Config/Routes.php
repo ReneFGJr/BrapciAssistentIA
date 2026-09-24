@@ -34,3 +34,10 @@ $routes->post('person/(:num)/shares/(:num)/revoke', 'Person::revoke/$1/$2', ['fi
 $routes->post('person/import', 'Person::import', ['filter' => ['auth', 'csrf']]);
 
 $routes->post('person/(:num)/photo', 'Person::photo/$1', ['filter' => ['auth', 'csrf']]);
+
+$routes->get('corporatebody', 'CorporateBody::index', ['filter' => 'auth']);
+$routes->get('corporatebody/new', 'CorporateBody::new', ['filter' => 'auth']);
+$routes->post('corporatebody', 'CorporateBody::create', ['filter' => ['auth', 'csrf']]);
+$routes->get('corporatebody/(:num)', 'CorporateBody::show/$1', ['filter' => 'auth']);
+$routes->get('corporatebody/(:num)/edit', 'CorporateBody::edit/$1', ['filter' => 'auth']);
+$routes->post('corporatebody/(:num)/update', 'CorporateBody::update/$1', ['filter' => ['auth', 'csrf']]);

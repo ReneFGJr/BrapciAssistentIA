@@ -67,3 +67,6 @@
 #--------------------------------------------------------------------
 
 # logger.threshold = 4
+
+# Optional CA bundle for ROR when the PHP web server has no configured certificate store.
+# ror.caBundle = "/path/to/cacert.pem"

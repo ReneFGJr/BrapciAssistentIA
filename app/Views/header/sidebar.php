@@ -3,9 +3,10 @@
 ========================================================== -->
 <?php
 $menu = [
-    ['name' => 'Home', 'url' => base_url(), 'class' => 'bi-house-fill'],
-    ['name' => 'Pessoas', 'url' => base_url('person'), 'class' => 'bi-people-fill'],
     ['name' => 'Dashboard', 'url' => base_url('dashboard'), 'class' => 'bi-grid-fill'],
+    ['name' => 'Pessoas', 'url' => base_url('person'), 'class' => 'bi-people-fill'],
+    ['name' => 'Instituições', 'url' => site_url('corporatebody'), 'class' => 'bi-buildings'],
+    ['name' => 'Home', 'url' => base_url(), 'class' => 'bi-house-fill'],
     ['name' => 'Configurações', 'url' => base_url(), 'class' => 'bi-graph-up'],
     ['name' => 'Produtos', 'url' => base_url(), 'class' => 'bi-box-fill'],
     ['name' => 'Vendas', 'url' => base_url(), 'class' => 'bi-box-arrow-in-up'],
