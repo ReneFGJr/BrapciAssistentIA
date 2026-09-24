@@ -185,7 +185,7 @@
 .app-pagination .page-item .page-link { margin-left: 0; border-radius: .5rem; }
 .kanban-page .card { --bs-card-color: #f1f5f9; color: #f1f5f9; }
 .kanban-page .form-label { color: #bfeaff; }
-.kanban-board { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; align-items: start; }
+.kanban-board { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; align-items: start; }
 .kanban-column { background: #091a28; border: 1px solid #355269; border-radius: .75rem; padding: 1rem; min-height: 280px; min-width: 0; }
 .kanban-column > h2 { color: #bfeaff; padding-bottom: .75rem; border-bottom: 1px solid #355269; }
 .kanban-empty { color: #b3c6d6; font-size: .9rem; }

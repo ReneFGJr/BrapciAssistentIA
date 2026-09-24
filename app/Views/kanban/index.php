@@ -6,6 +6,7 @@
     </div>
     <div class="kanban-board">
         <?php foreach (\App\Models\KanbanModel::STATUSES as $status => $label): ?>
+            <?php if ($status === 'close') { continue; } ?>
             <section class="kanban-column" aria-labelledby="kanban-<?= $status ?>">
                 <h2 id="kanban-<?= $status ?>" class="h5 d-flex justify-content-between"><?= esc($label) ?><span class="badge bg-secondary"><?= count($columns[$status]) ?></span></h2>
                 <?php if ($columns[$status] === []): ?><p class="kanban-empty">Nenhum cartão.</p><?php endif; ?>

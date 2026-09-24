@@ -20,15 +20,16 @@
     </form>
     <div class="table-responsive">
         <table class="table table-dark table-hover align-middle">
-            <thead><tr><th scope="col">Nome (apelido)</th><th scope="col">Nome completo</th><th scope="col" class="text-end">Ações</th></tr></thead>
+            <thead><tr><th scope="col">Nome (apelido)</th><th scope="col">Nome completo</th><th scope="col">Celular</th><th scope="col" class="text-end">Ações</th></tr></thead>
             <tbody>
                 <?php if ($persons === []): ?>
-                    <tr><td colspan="3"><?= $search !== '' ? 'Nenhuma pessoa encontrada para esta busca.' : 'Nenhuma pessoa cadastrada.' ?></td></tr>
+                    <tr><td colspan="4"><?= $search !== '' ? 'Nenhuma pessoa encontrada para esta busca.' : 'Nenhuma pessoa cadastrada.' ?></td></tr>
                 <?php endif; ?>
                 <?php foreach ($persons as $person): ?>
                     <tr>
                         <td><?= esc($person['nickname']) ?></td>
                         <td><?= esc($person['full_name']) ?></td>
+                        <td><?= esc(trim((string) ($person['phone_1'] ?? '')) ?: '-') ?></td>
                         <td class="text-end"><a class="btn btn-sm btn-outline-info" href="<?= site_url('person/' . $person['id']) ?>"
                             aria-label="<?= esc('Visualizar cadastro de ' . $person['nickname'], 'attr') ?>">Visualizar</a></td>
                     </tr>
