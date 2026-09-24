@@ -1,0 +1,5 @@
+Ao lado do e-mail em https://cip.brapci.inf.br/sudo/index.php/person/1 coloque um icone Copiar to Dash (com incone) se existir
+Remova o label "Dados do cadastro" pois abaixo já existe "Dados Pessoais"
+Se não existe a informação troque "Não informado" por "-"
+Ao lado do telefone, coloque o icone do WhatsApp
+Possibilite a inclusão de fotografia ao lado direito de Dados pessoais com upload, salvando em public/repository/photo usando um MD5 no nome do arquivo .jpg para impossibilitar a captura por número sequencial
