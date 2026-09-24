@@ -18,4 +18,5 @@
         rel="stylesheet">
 
     <link href="<?= base_url() ?>/assets/css/assistente.css" rel="stylesheet">
+    <link href="<?= base_url('assets/css/typography.css') ?>" rel="stylesheet">
 </head>

@@ -1,0 +1,28 @@
+:root {
+    --font-interface: "Segoe UI", Arial, sans-serif;
+    --font-data: "Courier New", Courier, monospace;
+    --bs-font-sans-serif: var(--font-interface);
+    --bs-body-font-family: var(--font-interface);
+    --bs-font-monospace: var(--font-data);
+}
+
+html, body,
+h1, h2, h3, h4, h5, h6,
+label, dt, th, button, .btn,
+input[type="submit"], input[type="button"], input[type="reset"],
+nav, .form-label, .page-link {
+    font-family: var(--font-interface);
+}
+
+td, dd, input, textarea, select, option,
+.form-control, .form-select,
+pre, code, kbd, samp,
+.data-value, .person-name-line h1,
+.user-name, .note-list-item strong, .note-content-screen {
+    font-family: var(--font-data);
+}
+
+/* Ações em tabelas continuam usando a fonte da interface. */
+td button, td .btn {
+    font-family: var(--font-interface);
+}

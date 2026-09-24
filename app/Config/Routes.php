@@ -21,3 +21,12 @@ $routes->get('dashboard/admin', 'AdminApps::index', ['filter' => ['auth', 'admin
 $routes->post('dashboard/admin/apps', 'AdminApps::create', ['filter' => ['auth', 'admin', 'csrf']]);
 $routes->post('dashboard/admin/apps/(:num)/update', 'AdminApps::update/$1', ['filter' => ['auth', 'admin', 'csrf']]);
 $routes->post('dashboard/admin/apps/(:num)/delete', 'AdminApps::delete/$1', ['filter' => ['auth', 'admin', 'csrf']]);
+
+$routes->get('person', 'Person::index', ['filter' => 'auth']);
+$routes->get('person/(:num)', 'Person::show/$1', ['filter' => 'auth']);
+$routes->get('person/new', 'Person::new', ['filter' => 'auth']);
+$routes->post('person', 'Person::create', ['filter' => ['auth', 'csrf']]);
+$routes->get('person/(:num)/edit', 'Person::edit/$1', ['filter' => 'auth']);
+$routes->post('person/(:num)/update', 'Person::update/$1', ['filter' => ['auth', 'csrf']]);
+$routes->post('person/(:num)/share', 'Person::share/$1', ['filter' => ['auth', 'csrf']]);
+$routes->post('person/(:num)/shares/(:num)/revoke', 'Person::revoke/$1/$2', ['filter' => ['auth', 'csrf']]);
