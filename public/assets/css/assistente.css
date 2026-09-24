@@ -165,3 +165,21 @@
 .corporatebody-page .card h2 { color: #bfeaff; }
 .corporatebody-page .card p { color: #d5e5f1; }
 .corporatebody-page dl { padding: 1rem; border: 1px solid #64849c; margin: 0; }
+.app-pagination {
+    --bs-pagination-color: #bfeaff;
+    --bs-pagination-bg: #091a28;
+    --bs-pagination-border-color: #64849c;
+    --bs-pagination-hover-color: #fff;
+    --bs-pagination-hover-bg: #1a3a52;
+    --bs-pagination-hover-border-color: #00d9ff;
+    --bs-pagination-focus-color: #fff;
+    --bs-pagination-focus-bg: #1a3a52;
+    --bs-pagination-focus-box-shadow: 0 0 0 .2rem #00d9ff40;
+    --bs-pagination-active-color: #04101c;
+    --bs-pagination-active-bg: #00d9ff;
+    --bs-pagination-active-border-color: #00d9ff;
+    flex-wrap: wrap;
+    gap: .5rem;
+    margin-top: 1rem;
+}
+.app-pagination .page-item .page-link { margin-left: 0; border-radius: .5rem; }
