@@ -12,7 +12,11 @@
             <button type="submit" class="btn btn-info">Buscar</button>
             <a href="<?= site_url('person') ?>" class="btn btn-outline-light">Limpar</a>
             <a href="<?= site_url('person/new') ?>" class="btn btn-info" aria-label="Cadastrar pessoa" title="Cadastrar pessoa"><i class="bi bi-plus-lg" aria-hidden="true"></i></a>
+            <button type="submit" form="person-import" class="btn btn-outline-info" title="Importar contacts.csv"><i class="bi bi-file-earmark-arrow-up" aria-hidden="true"></i> Importar</button>
         </div>
+    </form>
+    <form id="person-import" action="<?= site_url('person/import') ?>" method="post">
+        <?= csrf_field() ?>
     </form>
     <div class="table-responsive">
         <table class="table table-dark table-hover align-middle">

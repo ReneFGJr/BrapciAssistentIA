@@ -30,3 +30,7 @@ $routes->get('person/(:num)/edit', 'Person::edit/$1', ['filter' => 'auth']);
 $routes->post('person/(:num)/update', 'Person::update/$1', ['filter' => ['auth', 'csrf']]);
 $routes->post('person/(:num)/share', 'Person::share/$1', ['filter' => ['auth', 'csrf']]);
 $routes->post('person/(:num)/shares/(:num)/revoke', 'Person::revoke/$1/$2', ['filter' => ['auth', 'csrf']]);
+
+$routes->post('person/import', 'Person::import', ['filter' => ['auth', 'csrf']]);
+
+$routes->post('person/(:num)/photo', 'Person::photo/$1', ['filter' => ['auth', 'csrf']]);

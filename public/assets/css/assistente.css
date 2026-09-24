@@ -86,7 +86,7 @@
 .person-data-card h3 { color: #bfeaff; margin-bottom: 1.5rem; }
 .person-data-fields { display: grid; gap: 1.25rem; margin: 0; }
 .person-data-field { border-top: 1px solid #355269; padding-top: 1.25rem; min-width: 0; }
-.person-data-field dt { font-weight: 600; margin-bottom: .35rem; }
+.person-data-field dt { font-size: 50%; font-weight: 600; margin-bottom: .35rem; }
 .person-data-field dd { margin: 0; overflow-wrap: anywhere; }
 .person-details #person-sharing-panel > .card { margin: 0 0 2rem !important; border-radius: 1rem; }
 .person-share-options { padding: 1.25rem; margin: 1.5rem 0; border: 1px solid #52718a; border-radius: .75rem; background: #091a28; }
@@ -137,4 +137,18 @@
     -webkit-text-fill-color: #ffffff;
     -webkit-box-shadow: 0 0 0 1000px #091a28 inset;
     caret-color: #ffffff;
+}
+.person-photo-panel { float: right; width: 260px; margin: 0 0 1.5rem 2rem; }
+.person-avatar { position: relative; width: 260px; max-width: 100%; aspect-ratio: 1; }
+.person-photo { display: block; width: 100%; height: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 50%; border: 7px solid #4d3e91; background: #fff; }
+.person-photo-placeholder { overflow: hidden; }
+.person-photo-placeholder svg { display: block; width: 100%; height: 100%; padding-top: 32px; }
+.person-photo-camera { position: absolute; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; width: 76px; height: 76px; padding: 0; border: 6px solid #d9e6ff; border-radius: 50%; background: #0866ff; color: #fff; font-size: 34px; cursor: pointer; transition: background .15s, transform .15s; }
+.person-photo-camera:hover { background: #0052db; transform: scale(1.05); }
+.person-photo-camera:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+.person-photo-camera:disabled { cursor: wait; opacity: .7; }
+.person-photo-status:not(:empty) { display: block; margin-top: .75rem; }
+.person-data-card .card-body::after { content: ""; display: block; clear: both; }
+@media (max-width: 767.98px) {
+    .person-photo-panel { float: none; width: min(260px, 100%); margin: 0 auto 1.5rem; }
 }

@@ -27,6 +27,46 @@ class Person extends BaseController
         ])]);
     }
 
+    public function import()
+    {
+        try {
+            $result = (new \App\Libraries\PersonImportService())->import(ROOTPATH . '_Documments/contacts.csv', $this->actor());
+            return redirect()->to('/person')->with('success', sprintf(
+                'Importação concluída: %d importados, %d já existentes e %d inválidos. Campos importados: nome, apelido, até dois e-mails e dois telefones.',
+                $result['imported'], $result['duplicates'], $result['invalid']
+            ));
+        } catch (Throwable $exception) {
+            log_message('error', 'Erro ao importar pessoas: {message}', ['message' => $exception->getMessage()]);
+            return redirect()->to('/person')->with('error', 'Não foi possível importar. Verifique _Documments/contacts.csv e seu formato. Nenhum contato foi importado nesta tentativa.');
+        }
+    }
+
+    public function photo(int $id)
+    {
+        $service = new PersonAccessService();
+        $service->access($id, $this->actor(), true);
+        $file = $this->request->getFile('photo');
+        if ($file === null || ! $file->isValid() || $file->hasMoved()) {
+            return redirect()->to('/person/' . $id)->with('error', 'Selecione uma fotografia válida de até 5 MB.');
+        }
+        $directory = FCPATH . 'repository/photo';
+        $name = null;
+        try {
+            $name = \App\Libraries\PersonPhoto::save($file->getTempName(), $directory);
+            if (! $service->update($id, ['photo' => $name], $this->actor())) {
+                throw new \RuntimeException('Falha ao atualizar a fotografia.');
+            }
+        } catch (Throwable $exception) {
+            if ($name !== null && is_file($directory . '/' . $name)) {
+                unlink($directory . '/' . $name);
+            }
+            log_message('error', 'Erro ao salvar fotografia: {message}', ['message' => $exception->getMessage()]);
+            return redirect()->to('/person/' . $id)->with('error', $exception instanceof InvalidArgumentException
+                ? $exception->getMessage() : 'Não foi possível salvar a fotografia.');
+        }
+        return redirect()->to('/person/' . $id)->with('success', 'Fotografia atualizada.');
+    }
+
     public function show(int $id): string
     {
         $service = new PersonAccessService();

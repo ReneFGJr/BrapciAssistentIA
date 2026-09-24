@@ -10,7 +10,7 @@ class PersonModel extends Model
     protected $returnType = 'array';
     protected $allowedFields = [
         'nickname', 'full_name', 'cpf', 'phone_1', 'phone_2',
-        'email_1', 'email_2', 'institution_id',
+        'email_1', 'email_2', 'institution_id', 'photo',
     ];
 
     public function searchByName(string $search): self
