@@ -13,6 +13,7 @@ $menu = [
     ['name' => 'Vendas', 'url' => base_url(), 'class' => 'bi-box-arrow-in-up'],
     ['name' => 'Anotações', 'url' => base_url('notepad'), 'class' => 'bi-journal-text'],
     ['name' => 'Chat', 'url' => base_url('chat'), 'class' => 'bi-chat-dots-fill'],
+    ['name' => 'Ferramentas', 'url' => site_url('tools'), 'class' => 'bi-tools'],
     ['name' => 'Setup', 'url' => base_url(), 'class' => 'bi-gear-fill'],
 ];
 $user = session('auth_user');

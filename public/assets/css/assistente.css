@@ -217,3 +217,10 @@
 .kanban-detail-text { white-space: pre-wrap; overflow-wrap: anywhere; }
 .kanban-detail-text a { color: #80dcff; text-decoration: underline; }
 .kanban-detail-text a:hover { color: #fff; }
+.tools-tile, .tools-panel { background: #091a28; border: 1px solid #64849c; color: #f1f5f9; }
+.tools-tile { text-decoration: none; }
+.tools-tile h2, .tools-page .form-label { color: #bfeaff; }
+.tools-tile:hover, .tools-tile:focus-visible { background: #102334; border-color: #00d9ff; color: #fff; }
+.tools-panel { max-width: 760px; }
+.code-preview { overflow: auto; background: #fff; border-radius: .35rem; padding: .5rem; }
+.code-preview canvas { display: block; margin: auto; }

@@ -46,3 +46,5 @@ $routes->get('kanban/new', 'Kanban::new', ['filter' => 'auth']);
 $routes->post('kanban', 'Kanban::create', ['filter' => ['auth', 'csrf']]);
 $routes->get('kanban/(:num)/edit', 'Kanban::edit/$1', ['filter' => 'auth']);
 $routes->post('kanban/(:num)/update', 'Kanban::update/$1', ['filter' => ['auth', 'csrf']]);
+$routes->get('tools', 'Tools::index', ['filter' => 'auth']);
+$routes->get('tools/(:segment)', 'Tools::show/$1', ['filter' => 'auth']);
