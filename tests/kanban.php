@@ -46,3 +46,8 @@ $html = view('kanban/form', ['item' => $item]);
 verifyKanban(str_contains($html, '/update') && str_contains($html, 'Editar cartão'), 'Edit form');
 verifyKanban(str_contains(view('kanban/form', ['item' => null]), 'Novo cartão'), 'New form');
 echo "Kanban: ownership, statuses, priorities, validation and views passed.\n";
+$linked = \App\Libraries\KanbanText::render('Veja https://example.org/path?a=1&b=2. <script>alert(1)</script> javascript:alert(1)');
+verifyKanban(substr_count($linked, '<a ') === 1, 'Only HTTPS becomes a link');
+verifyKanban(str_contains($linked, 'target="_blank"') && str_contains($linked, 'rel="noopener noreferrer"'), 'New-tab links protected');
+verifyKanban(! str_contains($linked, '<script>') && str_contains($linked, '&lt;script&gt;'), 'Detail HTML escaped');
+echo "Kanban detail links passed.\n";

@@ -187,7 +187,7 @@ Os módulos exigem autenticação. Operações POST são protegidas por CSRF; a 
 
 ## Importação de contatos
 
-O botão **Importar** na listagem de pessoas lê `_Documments/contacts.csv` no servidor. O arquivo deve estar no formato de exportação de contatos Google, com cabeçalho, separador vírgula e texto UTF-8.
+O botão **Importar** na listagem de pessoas permite enviar um CSV de até 5 MB. O arquivo enviado é processado temporariamente e não é publicado. O arquivo de exemplo fica em `_Documments/contacts.csv` no projeto. O arquivo enviado deve estar no formato de exportação de contatos Google, com cabeçalho, separador vírgula e texto UTF-8.
 
 - Importa nome, apelido, até dois e-mails e dois telefones.
 - Vincula os registros ao usuário conectado com acesso permanente de edição.
@@ -195,7 +195,7 @@ O botão **Importar** na listagem de pessoas lê `_Documments/contacts.csv` no s
 - Informa totais importados, duplicados e inválidos.
 - Usa transação para desfazer as inserções da tentativa em caso de falha de processamento ou gravação.
 
-A coluna Photo importa imagens HTTPS de lh*.googleusercontent.com, convertidas para JPEG com nome MD5 aleatório. Contatos existentes recebem a foto somente quando não possuem uma. Fotos indisponíveis são contabilizadas separadamente, sem desfazer a importação dos contatos; links com falha aguardam cinco minutos antes de nova tentativa. O download é limitado por execução: se houver fotos pendentes, clique em **Importar** novamente para continuar. Fotografias são processadas após a transação dos contatos. Notas e outros campos não mapeados não são importados. O arquivo pode conter dados pessoais e deve permanecer fora da raiz pública.
+A coluna Photo importa imagens HTTPS de lh*.googleusercontent.com, convertidas para JPEG com nome MD5 aleatório. Contatos existentes recebem a foto somente quando não possuem uma. Fotos indisponíveis são contabilizadas separadamente, sem desfazer a importação dos contatos; links com falha aguardam cinco minutos antes de nova tentativa. O download é limitado por execução: se houver fotos pendentes, envie o mesmo CSV pelo botão **Importar** novamente para continuar. Fotografias são processadas após a transação dos contatos. Notas e outros campos não mapeados não são importados. O arquivo pode conter dados pessoais e deve permanecer fora da raiz pública.
 
 ## Fotografias
 

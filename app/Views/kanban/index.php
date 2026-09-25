@@ -13,12 +13,34 @@
                 <?php foreach ($columns[$status] as $item): ?>
                     <article class="kanban-note kanban-priority-<?= esc($item['priority'], 'attr') ?>">
                         <div class="d-flex align-items-start justify-content-between gap-2">
-                            <h3 class="h6"><?= esc($item['title']) ?></h3>
+                            <h3 class="h6 mb-1"><button type="button" class="kanban-open stretched-link" data-bs-toggle="modal" data-bs-target="#kanban-detail-<?= (int) $item['id'] ?>"><?= esc($item['title']) ?></button></h3>
                             <a class="kanban-edit" href="<?= site_url('kanban/' . $item['id'] . '/edit') ?>" title="Editar cartão" aria-label="<?= esc('Editar ' . $item['title'], 'attr') ?>"><i class="bi bi-pencil-square" aria-hidden="true"></i></a>
                         </div>
                         <span class="kanban-priority"><?= esc(\App\Models\KanbanModel::PRIORITIES[$item['priority']]) ?></span>
-                        <?php if ($item['description'] !== ''): ?><p class="kanban-description"><?= esc($item['description']) ?></p><?php endif; ?>
+
                     </article>
+                    <div class="modal fade kanban-detail" id="kanban-detail-<?= (int) $item['id'] ?>" tabindex="-1" aria-labelledby="kanban-detail-title-<?= (int) $item['id'] ?>" aria-hidden="true">
+                        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h2 class="modal-title h5" id="kanban-detail-title-<?= (int) $item['id'] ?>"><?= esc($item['title']) ?></h2>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <dl class="row">
+                                        <div class="col-sm-6"><dt>Status</dt><dd><?= esc($label) ?></dd></div>
+                                        <div class="col-sm-6"><dt>Prioridade</dt><dd><?= esc(\App\Models\KanbanModel::PRIORITIES[$item['priority']]) ?></dd></div>
+                                    </dl>
+                                    <h3 class="h6">Descrição</h3>
+                                    <div class="kanban-detail-text"><?= $item['description'] !== '' ? \App\Libraries\KanbanText::render($item['description']) : 'Sem descrição.' ?></div>
+                                </div>
+                                <div class="modal-footer">
+                                    <a class="btn btn-outline-info" href="<?= site_url('kanban/' . $item['id'] . '/edit') ?>" title="Editar cartão" aria-label="Editar cartão"><i class="bi bi-pencil-square" aria-hidden="true"></i></a>
+                                    <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Fechar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 <?php endforeach; ?>
             </section>
         <?php endforeach; ?>

@@ -29,15 +29,21 @@ class Person extends BaseController
 
     public function import()
     {
+        $file = $this->request->getFile('contacts_csv');
+        if ($file === null || ! $file->isValid() || $file->hasMoved()
+            || strtolower(pathinfo($file->getClientName(), PATHINFO_EXTENSION)) !== 'csv'
+            || $file->getSize() === 0 || $file->getSize() > 5 * 1024 * 1024) {
+            return redirect()->to('/person')->with('error', 'Selecione um arquivo CSV válido de até 5 MB (respeitando também o limite de upload do servidor).');
+        }
         try {
-            $result = (new \App\Libraries\PersonImportService())->import(ROOTPATH . '_Documments/contacts.csv', $this->actor());
+            $result = (new \App\Libraries\PersonImportService())->import($file->getTempName(), $this->actor());
             return redirect()->to('/person')->with('success', sprintf(
-                'Importação: %d novos, %d existentes, %d inválidos. Fotos: %d salvas, %d indisponíveis e %d pendentes (clique em Importar novamente para continuar). %d contatos com correspondência ambígua.',
+                'Importação: %d novos, %d existentes, %d inválidos. Fotos: %d salvas, %d indisponíveis e %d pendentes (envie o mesmo CSV novamente para continuar). %d contatos com correspondência ambígua.',
                 $result['imported'], $result['duplicates'], $result['invalid'], $result['photos'], $result['photo_errors'], $result['photo_pending'], $result['ambiguous']
             ));
         } catch (Throwable $exception) {
             log_message('error', 'Erro ao importar pessoas: {message}', ['message' => $exception->getMessage()]);
-            return redirect()->to('/person')->with('error', 'Não foi possível importar. Verifique _Documments/contacts.csv e seu formato. Nenhum contato foi importado nesta tentativa.');
+            return redirect()->to('/person')->with('error', 'Não foi possível importar. Verifique o formato do arquivo CSV enviado e tente novamente.');
         }
     }
 

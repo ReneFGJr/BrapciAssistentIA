@@ -200,3 +200,20 @@
 .kanban-description { white-space: pre-wrap; margin: .75rem 0 0; max-height: 20rem; overflow: auto; }
 @media (max-width: 1199.98px) { .kanban-board { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 575.98px) { .kanban-board { grid-template-columns: 1fr; } }
+.person-list-name { display: flex; align-items: center; gap: .75rem; }
+.person-list-photo { width: 48px; height: 48px; flex-shrink: 0; border-radius: 50%; object-fit: cover; border: 2px solid #8171c7; background: #091a28; }
+.person-list-photo-placeholder { display: inline-flex; align-items: center; justify-content: center; color: #bfeaff; font-size: 1.5rem; }
+/* Cartões compactos; detalhes abertos pelo cartão inteiro. */
+.kanban-note { position: relative; padding: .65rem .75rem; margin-top: .65rem; border-top-width: 3px; }
+.kanban-note h3 { font-size: 1.35rem; }
+.kanban-open { padding: 0; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.kanban-note:focus-within { outline: 2px solid #00d9ff; outline-offset: 3px; }
+.kanban-note .kanban-edit { position: relative; z-index: 2; min-width: 30px; min-height: 30px; font-size: .9rem; }
+.kanban-note .kanban-priority { font-size: .7rem; padding: .1rem .4rem; }
+.kanban-detail .modal-content { color: #f1f5f9; background: #091a28; border: 1px solid #64849c; }
+.kanban-detail .modal-header, .kanban-detail .modal-footer { border-color: #355269; }
+.kanban-detail dt, .kanban-detail h3 { color: #bfeaff; }
+.kanban-detail .modal-title { overflow-wrap: anywhere; }
+.kanban-detail-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.kanban-detail-text a { color: #80dcff; text-decoration: underline; }
+.kanban-detail-text a:hover { color: #fff; }
