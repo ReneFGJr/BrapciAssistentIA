@@ -278,3 +278,34 @@ Os testes verificam permissões, isolamento por usuário, validação, importaç
 ## Licença
 
 O repositório inclui a licença MIT em [LICENSE](LICENSE).
+
+## Agenda particular em produção
+
+O endereço de produção informado é `http://cip.brapci.inf.br/sudo`.
+Para utilizar OAuth do Google, habilite HTTPS com certificado válido e configure
+o **.env do servidor de produção**:
+
+```ini
+CI_ENVIRONMENT = production
+app.baseURL = 'https://cip.brapci.inf.br/sudo/'
+app.indexPage = 'index.php'
+```
+
+Cadastre no cliente OAuth do tipo Aplicativo da Web este URI de redirecionamento,
+sem barra no final:
+
+```text
+https://cip.brapci.inf.br/sudo/index.php/tools/usergoogleSchedule/callback
+```
+
+Se o servidor estiver configurado para remover `index.php` das URLs e
+`app.indexPage = ''`, o retorno será
+`https://cip.brapci.inf.br/sudo/tools/usergoogleSchedule/callback`.
+Use sempre o URI exibido em Ferramentas → Google Agenda particular no ambiente
+de produção. Cadastre o domínio `brapci.inf.br` na tela de consentimento quando
+solicitado pelo Google.
+
+Acesse o aplicativo por HTTPS, entre na sua conta local e conecte ao Google.
+O retorno precisa preservar a sessão iniciada nesse mesmo endereço.
+Redirecione HTTP para HTTPS no servidor. A configuração local de desenvolvimento
+não precisa ser alterada para o domínio de produção.

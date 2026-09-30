@@ -50,7 +50,7 @@
                     <li>Copie a chave, informe-a neste formulário junto com seu e-mail e salve.</li>
                 </ol>
                 <h3 class="h6">API key e autorização da agenda</h3>
-                <p>API keys permitem acesso a dados públicos. Para consultar uma agenda privada ou criar eventos, é necessário autorizar a conta com OAuth 2.0. A tela Agenda consulta os eventos públicos usando o e-mail informado como ID da agenda. O acesso privado com OAuth ainda não está configurado.</p>
+                <p>API keys permitem acesso a dados públicos. Para consultar uma agenda privada ou criar eventos, é necessário autorizar a conta com OAuth 2.0. A tela Agenda consulta os eventos públicos usando o e-mail informado como ID da agenda. Para acesso privado, configure a ferramenta Google Agenda particular (usergoogleSchedule).</p>
                 <p class="mb-0">Documentação: <a class="link-info" href="https://developers.google.com/workspace/guides/create-credentials" target="_blank" rel="noopener noreferrer">criar credenciais</a> e <a class="link-info" href="https://developers.google.com/workspace/calendar/api/quickstart/js" target="_blank" rel="noopener noreferrer">início rápido do Google Calendar</a>.</p>
             </section>
         </div>

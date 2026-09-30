@@ -3,6 +3,7 @@
     <div class="row g-3">
         <?php foreach ([
             'subjects' => ['Assuntos', 'bi-tags', 'Cadastre, edite e exclua seus assuntos de notas e reuniões.'],
+            'usergoogleSchedule' => ['Google Agenda particular', 'bi-calendar-lock', 'Conecte sua conta Google com OAuth para consultar os detalhes das reuniões da agenda particular.'],
             'googleSchedule' => ['Google Agenda', 'bi-calendar3', 'Configure seu e-mail e API key e veja como obter as credenciais do Google.'],
             'senha' => ['Gerador de Senha', 'bi-key', 'Crie uma senha aleatória com tamanho e caracteres personalizados.'],
             'cpf' => ['Gerador de CPF (Fake)', 'bi-person-vcard', 'Gere um CPF fictício com dígitos verificadores para testes de formulários.'],

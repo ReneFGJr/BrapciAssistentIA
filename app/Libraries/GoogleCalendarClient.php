@@ -19,7 +19,9 @@ class GoogleCalendarClient
             try {
                 $response = service('curlrequest')->get(
                     'https://www.googleapis.com/calendar/v3/calendars/' . rawurlencode($credentials['email']) . '/events',
-                    ['headers' => ['X-Goog-Api-Key' => $credentials['api_key'], 'Accept' => 'application/json'],
+                    ['headers' => isset($credentials['access_token'])
+                        ? ['Authorization' => 'Bearer ' . $credentials['access_token'], 'Accept' => 'application/json']
+                        : ['X-Goog-Api-Key' => $credentials['api_key'], 'Accept' => 'application/json'],
                         'query' => $query, 'connect_timeout' => 5, 'timeout' => 15,
                         'http_errors' => false, 'allow_redirects' => false]
                 );
@@ -30,7 +32,7 @@ class GoogleCalendarClient
             }
             if ($code !== 200) {
                 throw new GoogleCalendarException(in_array($code, [401, 403, 404], true)
-                    ? 'O Google não liberou esta agenda. Confira a API key e o e-mail. Agendas privadas exigem OAuth; API key permite consultar agendas públicas.'
+                    ? (isset($credentials['access_token']) ? 'O Google não liberou a agenda particular. Conecte novamente e autorize a leitura dos eventos.' : 'O Google não liberou esta agenda. Confira a API key e o e-mail. Agendas privadas exigem OAuth; API key permite consultar agendas públicas.')
                     : 'O Google Agenda está indisponível ou atingiu o limite de consultas. Tente novamente.');
             }
             if (!is_array($body) || !is_array($body['items'] ?? null)) {

@@ -1,10 +1,10 @@
 <section class="col-12 p-3 text-light">
     <?= view('person/messages', ['inFooter' => true]) ?>
     <div class="d-flex flex-wrap justify-content-between gap-2 mb-3">
-        <h1 class="h3">Agenda — próximas reuniões</h1>
+        <h1 class="h3"><?= ($schedulePath ?? 'schedule') === 'userSchedule' ? 'Agenda particular — próximas reuniões' : 'Agenda — próximas reuniões' ?></h1>
         <div class="d-flex gap-2">
-            <a class="btn btn-outline-light" href="<?= site_url('tools/googleSchedule') ?>">Configurar</a>
-            <form method="post" action="<?= site_url('schedule/sync') ?>"><?= csrf_field() ?><button class="btn btn-info" type="submit">Atualizar agenda</button></form>
+            <a class="btn btn-outline-light" href="<?= site_url($configurationPath ?? 'tools/googleSchedule') ?>">Configurar</a>
+            <form method="post" action="<?= site_url(($schedulePath ?? 'schedule') . '/sync') ?>"><?= csrf_field() ?><button class="btn btn-info" type="submit">Atualizar agenda</button></form>
         </div>
     </div>
     <p>Eventos dos próximos 90 dias. Horários exibidos no fuso de cada agenda.</p>
@@ -25,7 +25,7 @@
                         <td class="text-light" style="min-width: 160px; white-space: pre-wrap; overflow-wrap: anywhere;"><?= esc(trim((string) $event['location']) !== '' ? $event['location'] : 'Não informado pelo Google') ?></td>
                         <td><?= $event['status'] === 'tentative' ? 'Provisória' : 'Confirmada' ?></td>
                         <td>
-                            <form method="post" action="<?= site_url('schedule/' . $event['id'] . '/subject') ?>" class="d-flex gap-2">
+                            <form method="post" action="<?= site_url(($schedulePath ?? 'schedule') . '/' . $event['id'] . '/subject') ?>" class="d-flex gap-2">
                                 <?= csrf_field() ?>
                                 <select name="subject_id" class="form-select" aria-label="<?= esc('Assunto de ' . $event['title'], 'attr') ?>">
                                     <option value="">Sem assunto</option>
