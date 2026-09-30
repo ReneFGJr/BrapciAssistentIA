@@ -1,17 +1,21 @@
+window.setOperationStatus = (message, status = 'info') => {
+    const footer = document.getElementById('footer-message');
+    if (!footer) return;
+    footer.textContent = message || 'none';
+    footer.style.color = status === 'success' ? '#6df29a' : (status === 'error' ? '#ff8b80' : '');
+    footer.setAttribute('aria-live', 'polite');
+};
 (() => {
     const initializeSystem = () => {
         const footerMessage = document.getElementById('footer-message');
-        const source = document.querySelector('[data-footer-message]');
+        const sources = [...document.querySelectorAll('[data-footer-message]')].filter(element => element.dataset.footerMessage?.trim());
+        const source = sources.find(element => element.dataset.footerStatus === 'error') || sources[0];
         const message = source?.dataset.footerMessage?.trim();
         const messageStatus = source?.dataset.footerStatus;
         const modalElement = document.getElementById('auth-error-modal');
 
         if (footerMessage) {
-            footerMessage.textContent = message || 'none';
-            footerMessage.style.color = messageStatus === 'success'
-                ? '#6df29a'
-                : (message ? '#ff8b80' : '');
-            footerMessage.setAttribute('aria-live', 'polite');
+            window.setOperationStatus(message, messageStatus);
 
             if (messageStatus === 'error' && modalElement) {
                 footerMessage.style.cursor = 'pointer';

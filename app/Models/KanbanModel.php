@@ -9,7 +9,7 @@ class KanbanModel extends Model
     protected $table = 'kanban_items';
     protected $returnType = 'array';
     protected $useTimestamps = true;
-    protected $allowedFields = ['user_id', 'title', 'description', 'status', 'priority'];
+    protected $allowedFields = ['user_id', 'title', 'description', 'status', 'priority', 'notes_id'];
     protected $validationRules = [
         'user_id' => 'required|max_length[191]',
         'title' => 'required|max_length[150]',
@@ -17,6 +17,21 @@ class KanbanModel extends Model
         'status' => 'required|in_list[todo,doing,check,close]',
         'priority' => 'required|in_list[low,normal,urgent]',
     ];
+
+    public function forNote(int $noteId, array $actor): array
+    {
+        if ((new NoteModel($this->db))->visibleTo($actor)->where('notes.id', $noteId)->first() === null) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+        return $this->where('notes_id', $noteId)->forUser((string) $actor['id']);
+    }
+
+    public function createForNote(int $noteId, array $actor, array $data)
+    {
+        (new NoteModel($this->db))->editable($noteId, $actor);
+        return $this->insert(['user_id' => (string) $actor['id'], 'notes_id' => $noteId]
+            + array_intersect_key($data, array_flip(['title', 'description', 'status', 'priority'])));
+    }
 
     public function forUser(string $userId): array
     {

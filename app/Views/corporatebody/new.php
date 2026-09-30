@@ -11,7 +11,7 @@
             <button type="submit" class="btn btn-info"><i class="bi bi-search" aria-hidden="true"></i> Buscar</button>
         </div>
     </form>
-    <?php if ($error): ?><p class="alert alert-warning" role="alert"><?= esc($error) ?></p><?php endif; ?>
+    <?php if ($error): ?><span hidden data-footer-message="<?= esc($error, 'attr') ?>" data-footer-status="error"></span><?php endif; ?>
     <?php if ($result !== null): ?>
         <p><?= (int) $result['total'] ?> resultado(s). Selecione a instituição para preencher o cadastro.</p>
         <div class="list-group mb-3">

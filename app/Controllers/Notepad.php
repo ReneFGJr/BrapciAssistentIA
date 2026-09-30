@@ -32,10 +32,22 @@ class Notepad extends BaseController
             session()->setFlashdata('error', $exception->getMessage());
         }
 
+        $persons = (new \App\Models\PersonModel())->whereIn('id',
+            (new \App\Libraries\PersonAccessService())->accessibleIds((array) session('auth_user')))
+            ->searchByName('')->findAll();
+        $selectedPerson = null;
+        foreach ($persons as $person) {
+            if ((string) $person['id'] === (string) ($selected['person_id'] ?? '')) {
+                $selectedPerson = $person;
+                break;
+            }
+        }
         return view('main', [
             'content' => view('User/notepad', [
                 'notes' => $notes,
                 'selected' => $selected,
+                'persons' => $persons,
+                'selectedPerson' => $selectedPerson,
             ]),
         ]);
     }
@@ -51,7 +63,8 @@ class Notepad extends BaseController
             $id = (new UserNoteModel())->createNote(
                 $this->userId(),
                 trim((string) $this->request->getPost('title')),
-                trim((string) $this->request->getPost('content'))
+                trim((string) $this->request->getPost('content')),
+                ...$this->meetingData()
             );
 
             return redirect()->to('/notepad?note=' . $id)->with('success', 'Anotação criada com sucesso.');
@@ -64,6 +77,9 @@ class Notepad extends BaseController
 
     public function update(int $id)
     {
+        if ((new UserNoteModel())->getNote($id, $this->userId()) === null) {
+            throw PageNotFoundException::forPageNotFound();
+        }
         if (! $this->validateNote()) {
             return redirect()->to('/notepad?note=' . $id)->withInput()
                 ->with('error', implode(' ', $this->validator->getErrors()));
@@ -74,7 +90,8 @@ class Notepad extends BaseController
                 $id,
                 $this->userId(),
                 trim((string) $this->request->getPost('title')),
-                trim((string) $this->request->getPost('content'))
+                trim((string) $this->request->getPost('content')),
+                ...$this->meetingData()
             );
 
             if (! $updated) {
@@ -105,7 +122,20 @@ class Notepad extends BaseController
         return $this->validate([
             'title' => 'required|max_length[150]',
             'content' => 'permit_empty|max_length[50000]',
+            'person_id' => 'permit_empty|is_natural_no_zero',
+            'meeting_at' => 'permit_empty|valid_date[Y-m-d\\TH:i]',
         ]);
+    }
+
+    private function meetingData(): array
+    {
+        $personId = $this->request->getPost('person_id');
+        $personId = empty($personId) ? null : (int) $personId;
+        if ($personId !== null) {
+            (new \App\Libraries\PersonAccessService())->access($personId, (array) session('auth_user'));
+        }
+        $meeting = (string) $this->request->getPost('meeting_at');
+        return [$personId, $meeting === '' ? null : str_replace('T', ' ', $meeting) . ':00'];
     }
 
     private function userId(): string

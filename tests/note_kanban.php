@@ -1,0 +1,27 @@
+<?php
+require __DIR__ . '/notes.php';
+require APPPATH . 'Database/Migrations/2026-09-24-000006_CreateKanbanItems.php';
+require APPPATH . 'Database/Migrations/2026-09-30-000006_AddKanbanNotesId.php';
+(new App\Database\Migrations\CreateKanbanItems(Config\Database::forge($db)))->up();
+$kanban = new App\Models\KanbanModel($db);
+$task = ['title' => 'Atividade', 'description' => 'Descrição', 'status' => 'todo', 'priority' => 'normal'];
+$oldId = $kanban->createFor('owner', $task);
+(new App\Database\Migrations\AddKanbanNotesId(Config\Database::forge($db)))->up();
+verifyNote($kanban->owned($oldId, 'owner')['notes_id'] === null, 'Existing tasks default null');
+$newTask = $kanban->createForNote($id, $owner, $task + ['user_id' => 'stranger', 'notes_id' => $recentId]);
+verifyNote($newTask !== false, 'Task created');
+$saved = $kanban->owned($newTask, 'owner');
+verifyNote((int) $saved['notes_id'] === $id && $saved['user_id'] === 'owner', 'Note and owner cannot be forged');
+verifyNote(count($kanban->forNote($id, $owner)) === 1, 'Associated task listed');
+verifyNote(count($kanban->forUser('owner')) === 2, 'Task appears in main Kanban');
+deniedNote(fn () => $kanban->createForNote($id, $stranger, $task));
+deniedNote(fn () => $kanban->forNote($id, $stranger));
+verifyNote($kanban->createForNote($id, $owner, array_replace($task, ['title' => ''])) === false, 'Empty title rejected');
+verifyNote($kanban->createForNote($id, $owner, array_replace($task, ['status' => 'bad'])) === false, 'Invalid status rejected');
+$kanban->updateFor($newTask, 'owner', ['title' => 'Atualizada', 'notes_id' => $recentId]);
+verifyNote((int) $kanban->owned($newTask, 'owner')['notes_id'] === $id, 'Normal editing retains note link');
+$db->table('persons_user')->where('user', 'reader')->update(['expires_at' => null, 'access_level' => 'edit']);
+verifyNote($kanban->forNote($id, $reader) === [], 'Private task isolation on shared note');
+$html = view('notes/kanban', ['note' => ['id' => $id], 'tasks' => [$saved]]);
+verifyNote(str_contains($html, 'note-task-panel') && str_contains($html, 'task_title') && str_contains($html, 'csrf'), 'Panel and protected form');
+echo "Note Kanban checks passed.\n";

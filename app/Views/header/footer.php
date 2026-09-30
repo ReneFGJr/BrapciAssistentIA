@@ -24,7 +24,7 @@ $footerGivenName = session()->get('logged_in') && is_array($footerUser)
 
     <div>
         MENSAGEM<br>
-        <strong id="footer-message">none</strong>
+        <strong id="footer-message" role="status" aria-live="polite" data-footer-message="<?= esc((string) (session()->getFlashdata('error') ?: session()->getFlashdata('success') ?: ''), 'attr') ?>" data-footer-status="<?= session()->getFlashdata('error') ? 'error' : 'success' ?>"><?= esc((string) (session()->getFlashdata('error') ?: session()->getFlashdata('success') ?: 'none')) ?></strong>
     </div>
 
     <?php if ($footerGivenName): ?>

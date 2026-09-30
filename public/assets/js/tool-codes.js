@@ -13,7 +13,7 @@
         revision++;
         output.hidden = true;
         download.removeAttribute('href');
-        status.textContent = '';
+        window.setOperationStatus('');
     };
     input.addEventListener('input', clear);
     format?.addEventListener('change', clear);
@@ -43,12 +43,12 @@
             if (current !== revision) return;
             download.href = canvas.toDataURL('image/png');
             output.hidden = false;
-            status.textContent = 'Código gerado. A imagem está pronta para baixar.';
+            window.setOperationStatus('Código gerado. A imagem está pronta para baixar.', 'success');
         } catch (error) {
             if (current !== revision) return;
-            status.textContent = /amount of data|too big/i.test(error.message || '')
+            window.setOperationStatus(/amount of data|too big/i.test(error.message || '')
                 ? 'O conteúdo ultrapassa a capacidade do QR Code. Reduza o texto.'
-                : (error.message || 'Não foi possível gerar o código. Confira o conteúdo.');
+                : (error.message || 'Não foi possível gerar o código. Confira o conteúdo.'), 'error');
         }
     });
 })();

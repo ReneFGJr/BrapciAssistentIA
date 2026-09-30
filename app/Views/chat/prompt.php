@@ -23,7 +23,7 @@ document.getElementById('chat-prompt-form').addEventListener('submit', async fun
 
     button.disabled = true;
     feedback.className = 'chat-feedback';
-    feedback.textContent = 'Enviando...';
+    window.setOperationStatus('Enviando...');
 
     try {
         const response = await fetch(form.action, {
@@ -38,10 +38,10 @@ document.getElementById('chat-prompt-form').addEventListener('submit', async fun
         }
 
         input.value = '';
-        feedback.textContent = payload.message || payload.response || 'Mensagem enviada.';
+        feedback.textContent = payload.response || '';
+        window.setOperationStatus(payload.message || 'Mensagem enviada.', 'success');
     } catch (error) {
-        feedback.className = 'chat-feedback is-error';
-        feedback.textContent = error.message;
+        window.setOperationStatus(error.message, 'error');
     } finally {
         button.disabled = false;
         input.focus();

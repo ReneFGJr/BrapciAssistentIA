@@ -13,18 +13,22 @@ class UserNoteModel extends Model
     protected $returnType = 'array';
     protected $allowedFields = [
         'user_id',
+        'person_id',
+        'meeting_at',
         'title_encrypted',
         'content_encrypted',
         'created_at',
         'updated_at',
     ];
 
-    public function createNote(string $userId, string $title, string $content): int
+    public function createNote(string $userId, string $title, string $content, ?int $personId = null, ?string $meetingAt = null): int
     {
         $now = date('Y-m-d H:i:s');
 
         $this->db->table($this->table)->insert([
             'user_id' => $userId,
+            'person_id' => $personId,
+            'meeting_at' => $meetingAt,
             'title_encrypted' => $this->encrypt($title),
             'content_encrypted' => $this->encrypt($content),
             'created_at' => $now,
@@ -55,17 +59,21 @@ class UserNoteModel extends Model
         return $row === null ? null : $this->decryptRow($row);
     }
 
-    public function updateNote(int $id, string $userId, string $title, string $content): bool
+    public function updateNote(int $id, string $userId, string $title, string $content, ?int $personId = null, ?string $meetingAt = null): bool
     {
-        $this->db->table($this->table)
+        if ($this->getNote($id, $userId) === null) {
+            return false;
+        }
+        return $this->db->table($this->table)
             ->where(['id' => $id, 'user_id' => $userId])
             ->update([
+                'person_id' => $personId,
+                'meeting_at' => $meetingAt,
                 'title_encrypted' => $this->encrypt($title),
                 'content_encrypted' => $this->encrypt($content),
                 'updated_at' => date('Y-m-d H:i:s'),
             ]);
 
-        return $this->db->affectedRows() > 0;
     }
 
     public function deleteNote(int $id, string $userId): bool

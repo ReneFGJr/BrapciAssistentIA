@@ -1,7 +1,7 @@
 <section class="person-page col-12 p-3 text-light">
     <h1 class="h3 mb-4">Cadastrar pessoa</h1>
     <?= view('person/messages') ?>
-    <?php if ($error !== null): ?><div class="alert alert-danger" role="alert"><?= esc($error) ?></div><?php endif; ?>
+    <?php if ($error !== null): ?><span hidden data-footer-message="<?= esc($error, 'attr') ?>" data-footer-status="error"></span><?php endif; ?>
     <form action="<?= site_url('person/new') ?>" method="get" class="card bg-dark border-secondary mb-4">
         <div class="card-body">
             <label for="lookup-query" class="form-label">Qual é o nome ou e-mail da pessoa?</label>

@@ -55,9 +55,9 @@
             if (root.dataset.generator === 'senha') result.value = password();
             else { rawCpf = cpf(); formatCpf(); }
             copy.disabled = false;
-            status.textContent = 'Gerado. Use o botão ao lado para copiar.';
+            window.setOperationStatus('Gerado. Use o botão ao lado para copiar.', 'success');
         } catch (error) {
-            status.textContent = error.message;
+            window.setOperationStatus(error.message, 'error');
         }
     });
     document.getElementById('cpf-formatted')?.addEventListener('change', () => {
@@ -66,11 +66,11 @@
     copy.addEventListener('click', async () => {
         try {
             await navigator.clipboard.writeText(result.value);
-            status.textContent = 'Copiado para a área de transferência.';
+            window.setOperationStatus('Copiado para a área de transferência.', 'success');
         } catch {
             result.focus();
             result.select();
-            status.textContent = 'Resultado selecionado. Use Ctrl+C ou o comando Copiar do dispositivo.';
+            window.setOperationStatus('Resultado selecionado. Use Ctrl+C ou o comando Copiar do dispositivo.');
         }
     });
 })();

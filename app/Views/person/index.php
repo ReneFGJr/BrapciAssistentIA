@@ -1,4 +1,4 @@
-<section class="person-page col-12 p-3">
+<section class="person-page person-index col-12 p-3">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h3 text-light mb-0">Pessoas</h1>
 
@@ -47,8 +47,8 @@
                         </td>
                         <td><?= esc($person['full_name']) ?></td>
                         <td><?= esc(trim((string) ($person['phone_1'] ?? '')) ?: '-') ?></td>
-                        <td class="text-end"><a class="btn btn-sm btn-outline-info" href="<?= site_url('person/' . $person['id']) ?>"
-                            aria-label="<?= esc('Visualizar cadastro de ' . $person['nickname'], 'attr') ?>">Visualizar</a></td>
+                        <td class="text-end"><?php if ($person['can_view'] ?? true): ?><a class="btn btn-sm btn-outline-info" href="<?= site_url('person/' . $person['id']) ?>"
+                            aria-label="<?= esc('Visualizar cadastro de ' . $person['nickname'], 'attr') ?>">Visualizar</a><?php else: ?><span class="text-light">Acesso restrito</span><?php endif; ?></td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>

@@ -14,7 +14,7 @@ $action = $person === null ? 'person' : 'person/' . $person['id'] . '/update';
 <section class="person-page col-12 p-3 text-light">
     <h1 class="h3 mb-4"><?= $person === null ? 'Nova pessoa' : 'Editar pessoa' ?></h1>
     <?= view('person/messages') ?>
-    <?php if (! empty($lookupMessage)): ?><p class="alert alert-info"><?= esc($lookupMessage) ?></p><?php endif; ?>
+    <?php if (! empty($lookupMessage)): ?><span hidden data-footer-message="<?= esc($lookupMessage, 'attr') ?>" data-footer-status="info"></span><?php endif; ?>
     <?php if ($person === null): ?><a href="<?= site_url('person/new') ?>" class="btn btn-outline-light mb-3">Buscar outra pessoa</a><?php endif; ?>
     <form action="<?= site_url($action) ?>" method="post" class="card bg-dark border-secondary">
         <?= csrf_field() ?>

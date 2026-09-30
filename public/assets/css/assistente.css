@@ -224,3 +224,31 @@
 .tools-panel { max-width: 760px; }
 .code-preview { overflow: auto; background: #fff; border-radius: .35rem; padding: .5rem; }
 .code-preview canvas { display: block; margin: auto; }
+
+/* Fonte da listagem de Pessoas: 50% dos tamanhos de person-page. */
+.person-page.person-index { font-size: 1rem; }
+.person-page.person-index .h3 { font-size: calc(1.3rem + .6vw); }
+.person-page.person-index .form-control,
+.person-page.person-index .form-select,
+.person-page.person-index .btn,
+.person-page.person-index .page-link { font-size: 1rem; }
+.person-page.person-index .btn-sm,
+.person-page.person-index small { font-size: .875rem; }
+@media (min-width: 1200px) {
+    .person-page.person-index .h3 { font-size: 1.75rem; }
+}
+
+/* Detalhes de Person: tipografia reduzida em 50%. */
+.person-page.person-details { font-size: 1rem; }
+.person-page.person-details .h3 { font-size: calc(1.3rem + .6vw); }
+.person-page.person-details .h5 { font-size: 1.25rem; }
+.person-page.person-details .form-control,
+.person-page.person-details .form-select,
+.person-page.person-details .btn,
+.person-page.person-details .page-link { font-size: 1rem; }
+.person-page.person-details .btn-sm,
+.person-page.person-details small { font-size: .875rem; }
+.person-page.person-details .person-photo-camera { font-size: 17px; }
+@media (min-width: 1200px) {
+    .person-page.person-details .h3 { font-size: 1.75rem; }
+}

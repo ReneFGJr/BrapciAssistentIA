@@ -20,8 +20,8 @@ class Person extends BaseController
         $query = $this->request->getGet('q');
         $search = is_string($query) ? trim($query) : '';
         $model = new PersonModel();
-        $persons = $model->whereIn('id', (new PersonAccessService())->accessibleIds($this->actor()))
-            ->searchByName($search)->paginate(25);
+        $persons = $model->visibleInDirectory($this->actor())->searchByWords($search)
+            ->orderBy('nickname')->orderBy('id')->paginate(25);
         return view('main', ['content' => view('person/index', [
             'persons' => $persons, 'search' => $search, 'pager' => $model->pager,
         ])]);
@@ -79,8 +79,11 @@ class Person extends BaseController
         $grant = $service->access($id, $this->actor());
         $person = $this->person($id);
         $isOwner = $grant['user_own'] === (string) $this->actor()['id'];
+        $notesModel = new \App\Models\NoteModel();
+        $notes = $notesModel->forPerson($id, $this->actor())->paginate(15, 'person_notes');
         return view('main', ['content' => view('person/show', [
             'person' => $person, 'canEdit' => $grant['access_level'] === 'edit',
+            'notes' => $notes, 'notesPager' => $notesModel->pager,
             'isOwner' => $isOwner, 'shares' => $isOwner ? $service->shares($id, $this->actor()) : [],
         ])]);
     }

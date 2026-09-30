@@ -48,3 +48,22 @@ $routes->get('kanban/(:num)/edit', 'Kanban::edit/$1', ['filter' => 'auth']);
 $routes->post('kanban/(:num)/update', 'Kanban::update/$1', ['filter' => ['auth', 'csrf']]);
 $routes->get('tools', 'Tools::index', ['filter' => 'auth']);
 $routes->get('tools/(:segment)', 'Tools::show/$1', ['filter' => 'auth']);
+$routes->get('notes', 'Notes::index', ['filter' => 'auth']);
+$routes->get('notes/add', 'Notes::add', ['filter' => 'auth']);
+$routes->get('notes/(:num)', 'Notes::show/$1', ['filter' => 'auth']);
+$routes->post('notes/add', 'Notes::create', ['filter' => ['auth', 'csrf']]);
+$routes->get('notes/(:num)/edit', 'Notes::edit/$1', ['filter' => 'auth']);
+$routes->post('notes/(:num)/update', 'Notes::update/$1', ['filter' => ['auth', 'csrf']]);
+
+$routes->post('notes/(:num)/participants', 'Notes::addParticipant/$1', ['filter' => ['auth', 'csrf']]);
+$routes->post('notes/(:num)/participants/(:num)/remove', 'Notes::removeParticipant/$1/$2', ['filter' => ['auth', 'csrf']]);
+
+$routes->get('notes/(:num)/participants/search', 'Notes::searchParticipants/$1', ['filter' => 'auth']);
+
+$routes->post('notes/(:num)/categories', 'Notes::addCategory/$1', ['filter' => ['auth', 'csrf']]);
+$routes->post('notes/(:num)/categories/new', 'Notes::createCategory/$1', ['filter' => ['auth', 'csrf']]);
+$routes->post('notes/(:num)/categories/(:num)/remove', 'Notes::removeCategory/$1/$2', ['filter' => ['auth', 'csrf']]);
+
+$routes->post('notes/(:num)/tasks', 'Notes::createTask/$1', ['filter' => ['auth', 'csrf']]);
+
+$routes->get('notes/(:num)/subjects/(:num)', 'Notes::related/$1/$2', ['filter' => 'auth']);

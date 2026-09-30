@@ -22,11 +22,7 @@ $updatedToday = count(array_filter($notes, static fn (array $note): bool => subs
         <article><span>PROTEÇÃO</span><strong class="metric-secure"><i class="bi bi-shield-lock-fill"></i> ATIVA</strong></article>
     </div>
 
-    <?php if ($error): ?>
-        <div class="alert alert-danger border-danger bg-dark text-danger" role="alert"><?= esc($error) ?></div>
-    <?php elseif ($success): ?>
-        <div class="alert alert-success border-success bg-dark text-success" role="status"><?= esc($success) ?></div>
-    <?php endif; ?>
+
 
     <div class="notepad-layout">
         <aside class="notepad-list" aria-labelledby="notes-list-title">
@@ -66,6 +62,12 @@ $updatedToday = count(array_filter($notes, static fn (array $note): bool => subs
                     </button>
                 </div>
                 <div class="viewer-body">
+                    <dl class="row mb-3">
+                        <dt class="col-sm-4">Person</dt>
+                        <dd class="col-sm-8"><?= esc($selectedPerson['full_name'] ?? (empty($selected['person_id']) ? 'Não informada' : 'Person indisponível')) ?></dd>
+                        <dt class="col-sm-4">Data da reunião (horário)</dt>
+                        <dd class="col-sm-8"><?= empty($selected['meeting_at']) ? 'Não informada' : esc(date('d/m/Y H:i', strtotime($selected['meeting_at']))) ?></dd>
+                    </dl>
                     <textarea class="note-content-screen" readonly aria-label="Conteúdo da anotação"><?= esc($selected['content']) ?></textarea>
                     <small>Atualizada em <?= esc(date('d/m/Y H:i', strtotime($selected['updated_at']))) ?></small>
                 </div>
@@ -80,7 +82,7 @@ $updatedToday = count(array_filter($notes, static fn (array $note): bool => subs
     <div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content notepad-modal">
         <form action="<?= site_url('notepad') ?>" method="post"><?= csrf_field() ?>
             <div class="modal-header"><h2 class="modal-title fs-5" id="new-note-title">Nova anotação</h2><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button></div>
-            <div class="modal-body"><label for="new-title">Título</label><input id="new-title" name="title" type="text" maxlength="150" value="<?= esc(old('title')) ?>" required><label for="new-content">Anotação</label><textarea id="new-content" name="content" maxlength="50000" placeholder="Escreva sua anotação..."><?= esc(old('content')) ?></textarea></div>
+            <div class="modal-body"><?= view('User/notepad_meeting_fields', ['prefix' => 'new', 'note' => null, 'persons' => $persons]) ?><label for="new-title">Título</label><input id="new-title" name="title" type="text" maxlength="150" value="<?= esc(old('title')) ?>" required><label for="new-content">Anotação</label><textarea id="new-content" name="content" maxlength="50000" placeholder="Escreva sua anotação..."><?= esc(old('content')) ?></textarea></div>
             <div class="modal-footer"><button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-info">Criar anotação</button></div>
         </form>
     </div></div>
@@ -91,13 +93,14 @@ $updatedToday = count(array_filter($notes, static fn (array $note): bool => subs
     <div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content notepad-modal">
         <form action="<?= site_url('notepad/' . $selected['id'] . '/update') ?>" method="post"><?= csrf_field() ?>
             <div class="modal-header"><h2 class="modal-title fs-5" id="edit-note-title">Editar anotação</h2><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button></div>
-            <div class="modal-body"><label for="edit-title">Título</label><input id="edit-title" name="title" type="text" maxlength="150" value="<?= esc($selected['title']) ?>" required><label for="edit-content">Anotação</label><textarea id="edit-content" name="content" maxlength="50000"><?= esc($selected['content']) ?></textarea></div>
+            <div class="modal-body"><?= view('User/notepad_meeting_fields', ['prefix' => 'edit', 'note' => $selected, 'persons' => $persons]) ?><label for="edit-title">Título</label><input id="edit-title" name="title" type="text" maxlength="150" value="<?= esc($selected['title']) ?>" required><label for="edit-content">Anotação</label><textarea id="edit-content" name="content" maxlength="50000"><?= esc($selected['content']) ?></textarea></div>
             <div class="modal-footer"><button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-info">Salvar alterações</button></div>
         </form>
     </div></div>
 </div>
 <?php endif; ?>
 
+<script src="<?= base_url('assets/js/notepad-person.js') ?>" defer></script>
 <style>
 .notepad-page{padding:8px 12px 24px}.notepad-titlebar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}.notepad-titlebar span{color:var(--cyan);font-size:10px;letter-spacing:2px}.notepad-titlebar h1{margin:4px 0 0;color:#fff;font-size:25px}.new-note-button{min-height:44px;padding:9px 17px;border:1px solid var(--cyan);border-radius:8px;color:#02101a;background:var(--cyan);font-weight:700}.notepad-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}.notepad-metrics article{padding:12px 16px;border:1px solid #12334a;border-radius:10px;background:linear-gradient(145deg,#061624fa,#020a12fa)}.notepad-metrics span{display:block;color:#7193ac;font-size:9px;letter-spacing:1px}.notepad-metrics strong{display:block;margin-top:4px;color:#fff;font-size:20px}.notepad-metrics .metric-secure{color:var(--green);font-size:15px}.notepad-layout{display:grid;grid-template-columns:300px minmax(0,1fr);gap:16px}.notepad-list,.notepad-viewer{border:1px solid #12334a;border-radius:12px;background:linear-gradient(145deg,#061624fa,#020a12fa);overflow:hidden}.notepad-panel-header{padding:13px 16px;border-bottom:1px solid #12334a}.notepad-panel-header h2{margin:0;color:var(--cyan);font-size:20px}.notepad-items{max-height:calc(100vh - 340px);overflow:auto}.note-list-item{display:flex;flex-direction:column;gap:6px;padding:15px 16px;border-bottom:1px solid #102b3e;color:#d7ebf8;text-decoration:none}.note-list-item:hover,.note-list-item.active{color:#fff;background:#06304a}.note-list-item.active{border-left:3px solid var(--cyan)}.note-list-item strong{font-family:"Courier New",Courier,monospace;font-size:16px}.note-list-item span{color:#7193ac;font-size:10px}.viewer-header{display:flex;align-items:center;justify-content:space-between}.viewer-header span{color:#7193ac;font-size:9px;letter-spacing:1px}.viewer-header h2{margin-top:4px;color:#fff}.viewer-header button{border:1px solid #164c70;border-radius:7px;padding:7px 12px;color:var(--cyan);background:#05243a}.viewer-body{padding:14px}.note-content-screen{display:block;width:100%;height:calc(100vh - 375px);min-height:360px;padding:16px;border:1px solid #164c70;border-radius:8px;resize:none;outline:0;color:#d7ebf8;background:#020a12;font-family:"Courier New",Courier,monospace;font-size:18px;line-height:1.6}.viewer-body small{display:block;margin-top:8px;color:#57738e;text-align:right}.viewer-empty{height:calc(100vh - 305px);min-height:430px;display:grid;place-content:center;text-align:center;color:#57738e}.viewer-empty i{font-size:42px}.viewer-empty h2{margin:10px 0 0;color:#8db5d1}.notepad-empty{padding:45px 15px;text-align:center;color:#57738e}.notepad-empty i{font-size:34px}.notepad-modal{border:1px solid #164c70;color:#d7ebf8;background:#04101c}.notepad-modal .modal-header,.notepad-modal .modal-footer{border-color:#12334a}.notepad-modal .modal-body{display:grid;gap:9px}.notepad-modal label{color:#8db5d1;font-size:12px}.notepad-modal input,.notepad-modal textarea{width:100%;padding:11px 13px;border:1px solid #164c70;border-radius:8px;outline:0;color:#fff;background:#020a12}.notepad-modal textarea{min-height:320px;font-family:"Courier New",Courier,monospace}.notepad-modal input:focus,.notepad-modal textarea:focus{border-color:var(--cyan);box-shadow:0 0 0 3px #00d9ff20}@media(max-width:900px){.notepad-layout{grid-template-columns:1fr}.notepad-items{max-height:260px}.note-content-screen{height:60vh}.notepad-metrics{grid-template-columns:1fr}.notepad-titlebar{align-items:flex-start;gap:12px;flex-direction:column}}
 .note-filter{position:relative;padding:12px;border-bottom:1px solid #12334a}.note-filter i{position:absolute;left:25px;top:50%;transform:translateY(-50%);color:#7193ac}.note-filter input{width:100%;height:40px;padding:8px 12px 8px 38px;border:1px solid #164c70;border-radius:8px;outline:0;color:#fff;background:#020a12;font-size:13px}.note-filter input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px #00d9ff20}.note-filter input::placeholder{color:#57738e}.note-filter-empty{padding:28px 14px;text-align:center;color:#7193ac;font-size:13px}</style>

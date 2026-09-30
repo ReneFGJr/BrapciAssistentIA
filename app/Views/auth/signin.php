@@ -21,9 +21,7 @@ $footerStatus = $error ? 'error' : ($success ? 'success' : '');
                     <?php if (! empty($user['email'])): ?>
                         <p><?= esc($user['email']) ?></p>
                     <?php endif; ?>
-                    <?php if ($success): ?>
-                        <div class="signin-success" role="status"><?= esc($success) ?></div>
-                    <?php endif; ?>
+
                     <form action="<?= site_url('logout') ?>" method="post">
                         <?= csrf_field() ?>
                         <button type="submit">Sair</button>

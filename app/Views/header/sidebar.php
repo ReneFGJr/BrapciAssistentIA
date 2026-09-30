@@ -5,6 +5,7 @@
 $menu = [
     ['name' => 'Dashboard', 'url' => base_url('dashboard'), 'class' => 'bi-grid-fill'],
     ['name' => 'Pessoas', 'url' => base_url('person'), 'class' => 'bi-people-fill'],
+    ['name' => 'Notas de reuniões', 'url' => site_url('notes'), 'class' => 'bi-journal-check'],
     ['name' => 'Instituições', 'url' => site_url('corporatebody'), 'class' => 'bi-buildings'],
     ['name' => 'Kanban', 'url' => site_url('kanban'), 'class' => 'bi-kanban'],
     ['name' => 'Home', 'url' => base_url(), 'class' => 'bi-house-fill'],

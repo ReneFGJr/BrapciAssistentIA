@@ -89,6 +89,25 @@ $groups = [
             </section>
         <?php endforeach; ?>
     </div>
+    <section class="card bg-dark text-light border-secondary p-3 mt-4" aria-labelledby="person-notes-title">
+        <h2 id="person-notes-title" class="h5">Notas relacionadas</h2>
+        <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle">
+                <thead><tr><th>Data</th><th>Hora</th><th>Título</th><th>Situação</th><th>Ações</th></tr></thead>
+                <tbody>
+                    <?php if (empty($notes)): ?><tr><td colspan="5">Nenhuma nota relacionada disponível.</td></tr><?php endif; ?>
+                    <?php foreach ($notes ?? [] as $note): ?><tr>
+                        <td><?= esc(date('d/m/Y', strtotime($note['meeting_date']))) ?></td>
+                        <td><?= empty($note['meeting_time']) ? 'Não informada' : esc(substr($note['meeting_time'], 0, 5)) ?></td>
+                        <td><a class="link-info" href="<?= site_url('notes/' . $note['id']) ?>"><?= esc($note['title']) ?></a></td>
+                        <td><?= esc(\App\Models\NoteModel::STATUSES[$note['status']] ?? $note['status']) ?></td>
+                        <td><a class="btn btn-sm btn-outline-info" href="<?= site_url('notes/' . $note['id']) ?>" title="Visualizar nota" aria-label="<?= esc('Visualizar ' . $note['title'], 'attr') ?>"><i class="bi bi-eye" aria-hidden="true"></i></a></td>
+                    </tr><?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+        <?= isset($notesPager) ? $notesPager->links('person_notes') : '' ?>
+    </section>
 </section>
 <div id="person-copy-status" class="visually-hidden" role="status" aria-live="polite"></div>
 <script src="<?= base_url('assets/js/person-details.js') ?>" defer></script>

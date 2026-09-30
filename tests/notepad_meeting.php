@@ -1,0 +1,27 @@
+<?php
+require __DIR__ . '/notes.php';
+require APPPATH . 'Database/Migrations/2026-09-03-000001_CreateUserNotes.php';
+require APPPATH . 'Database/Migrations/2026-09-30-000002_AddNotepadMeeting.php';
+(new App\Database\Migrations\CreateUserNotes(Config\Database::forge($db)))->up();
+(new App\Database\Migrations\AddNotepadMeeting(Config\Database::forge($db)))->up();
+$model = new App\Models\UserNoteModel($db);
+$id = $model->createNote('owner', 'Reunião', 'Conteúdo', $person, '2026-09-30 14:35:00');
+$note = $model->getNote($id, 'owner');
+verifyNote((int) $note['person_id'] === $person && $note['meeting_at'] === '2026-09-30 14:35:00', 'Meeting metadata saved');
+verifyNote($note['content'] === 'Conteúdo', 'Encrypted content retained');
+verifyNote($model->getNote($id, 'stranger') === null, 'Private note');
+verifyNote(!$model->updateNote($id, 'stranger', 'Changed', '', null, null), 'Private update');
+verifyNote($model->updateNote($id, 'owner', 'Reunião', 'Conteúdo', $person, '2026-10-01 15:45:00'), 'Meeting update');
+$note = $model->getNote($id, 'owner');
+verifyNote($note['meeting_at'] === '2026-10-01 15:45:00', 'Updated time persisted');
+$legacyId = $model->createNote('owner', 'Sem reunião', '');
+verifyNote($model->getNote($legacyId, 'owner')['meeting_at'] === null, 'Optional fields');
+$validation = service('validation');
+$rules = ['meeting_at' => 'permit_empty|valid_date[Y-m-d\\TH:i]'];
+verifyNote($validation->setRules($rules)->run(['meeting_at' => '2026-10-01T15:45']), 'Datetime-local accepted');
+$validation->reset();
+verifyNote(!$validation->setRules($rules)->run(['meeting_at' => '2026-02-30T15:45']), 'Invalid date rejected');
+$html = view('User/notepad', ['notes' => [$note], 'selected' => $note, 'persons' => [['id' => $person, 'full_name' => 'Ana Silva', 'nickname' => 'Ana']], 'selectedPerson' => ['full_name' => 'Ana Silva']]);
+verifyNote(str_contains($html, '01/10/2026 15:45') && str_contains($html, 'Ana Silva'), 'Metadata visible');
+verifyNote(substr_count($html, 'type="datetime-local"') === 2, 'Create and edit fields');
+echo "Notepad meeting checks passed.\n";
