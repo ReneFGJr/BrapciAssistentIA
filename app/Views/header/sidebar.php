@@ -2,10 +2,16 @@
     BARRA LATERAL
 ========================================================== -->
 <?php
+$user = session('auth_user');
 $menu = [
     ['name' => 'Dashboard', 'url' => base_url('dashboard'), 'class' => 'bi-grid-fill'],
     ['name' => 'Pessoas', 'url' => base_url('person'), 'class' => 'bi-people-fill'],
     ['name' => 'Notas de reuniões', 'url' => site_url('notes'), 'class' => 'bi-journal-check'],
+];
+if (is_array($user) && !empty($user['id']) && (new \App\Models\UserServiceModel())->where('user_id', (string) $user['id'])->where('service', 'usergoogleSchedule')->countAllResults() > 0) {
+    $menu[] = ['name' => 'Agenda', 'url' => site_url('schedule'), 'class' => 'bi-calendar3'];
+}
+$menu = array_merge($menu, [
     ['name' => 'Instituições', 'url' => site_url('corporatebody'), 'class' => 'bi-buildings'],
     ['name' => 'Kanban', 'url' => site_url('kanban'), 'class' => 'bi-kanban'],
     ['name' => 'Home', 'url' => base_url(), 'class' => 'bi-house-fill'],
@@ -16,11 +22,7 @@ $menu = [
     ['name' => 'Chat', 'url' => base_url('chat'), 'class' => 'bi-chat-dots-fill'],
     ['name' => 'Ferramentas', 'url' => site_url('tools'), 'class' => 'bi-tools'],
     ['name' => 'Setup', 'url' => base_url(), 'class' => 'bi-gear-fill'],
-];
-$user = session('auth_user');
-if (is_array($user) && !empty($user['id']) && (new \App\Models\UserServiceModel())->hasGoogle($user)) {
-    $menu[] = ['name' => 'Agenda', 'url' => site_url('schedule'), 'class' => 'bi-calendar3'];
-}
+]);
 $allowedAdminIds = array_filter(array_map('trim', explode(',', (string) env('admin.allowedUserIds', ''))));
 $canAdminister = is_array($user) && (
     filter_var($user['admin'] ?? false, FILTER_VALIDATE_BOOL)
