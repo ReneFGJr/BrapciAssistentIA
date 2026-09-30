@@ -57,5 +57,9 @@ $html = view('notes/index', ['notes' => $model->visibleTo($owner)->findAll(), 'e
 verifyNote(!str_contains($html, '<script>alert(1)</script>') && str_contains($html, '&lt;script&gt;'), 'Escaped notes');
 $html = view('notes/form', ['note' => $model->find($id), 'persons' => (new App\Models\PersonModel($db))->findAll()]);
 verifyNote(!str_contains($html, 'name="person_id"') && str_contains($html, 'csrf'), 'Autocomplete and CSRF form');
+$linkedNote = array_replace($model->find($id), ['person_name' => 'Ana Silva', 'description' => 'Acesse https://example.com/reuniao?q=1&x=2 <script>alert(1)</script>']);
+$html = view('notes/show', ['note' => $linkedNote, 'canEdit' => false, 'participants' => [], 'categories' => [], 'tasks' => []]);
+verifyNote(str_contains($html, 'target="_blank"') && str_contains($html, 'rel="noopener noreferrer"')
+    && !str_contains($html, '<script>alert(1)</script>') && str_contains($html, '&lt;script&gt;'), 'Links open safely in a new tab');
 ob_end_clean();
 echo "Notes checks passed: create, edit, validation, ordering, access, expiration and escaping.\n";

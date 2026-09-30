@@ -1,3 +1,18 @@
+<?php
+$linkify = static function (string $text): string {
+    $parts = preg_split('~(https?://[^\s<>"\']+)~iu', $text, -1, PREG_SPLIT_DELIM_CAPTURE);
+    if ($parts === false) return esc($text);
+    $html = '';
+    foreach ($parts as $part) {
+        if (preg_match('~^https?://~iu', $part) === 1 && filter_var($part, FILTER_VALIDATE_URL)) {
+            $html .= '<a class="link-info" href="' . esc($part, 'attr') . '" target="_blank" rel="noopener noreferrer">' . esc($part) . '</a>';
+        } else {
+            $html .= esc($part);
+        }
+    }
+    return $html;
+};
+?>
 <section class="col-12 p-3 text-light">
     <?= view('person/messages', ['inFooter' => true]) ?>
     <div class="d-flex justify-content-between align-items-center gap-3 mb-4">
@@ -23,7 +38,7 @@
             <dd class="col-sm-9"><?= esc(\App\Models\NoteModel::STATUSES[$note['status']] ?? $note['status']) ?></dd>
         </dl>
         <h2 class="h5 mt-3">Descrição da reunião</h2>
-        <div style="white-space: pre-wrap; overflow-wrap: anywhere;"><?= esc($note['description']) ?></div>
+        <div style="white-space: pre-wrap; overflow-wrap: anywhere;"><?= $linkify((string) $note['description']) ?></div>
         <h2 class="h5 mt-4">Participantes</h2>
         <?php if ($participants === []): ?>
             <p class="mb-0">Nenhum participante incluído.</p>
@@ -49,7 +64,7 @@
                     <thead><tr><th>Tarefa</th><th>Descrição</th><th>Situação</th><th>Prioridade</th><th>Ações</th></tr></thead>
                     <tbody><?php foreach ($tasks as $task): ?><tr>
                         <td><?= esc($task['title']) ?></td>
-                        <td style="white-space: pre-wrap; overflow-wrap: anywhere;"><?= esc($task['description']) ?></td>
+                        <td style="white-space: pre-wrap; overflow-wrap: anywhere;"><?= $linkify((string) $task['description']) ?></td>
                         <td><?= esc(\App\Models\KanbanModel::STATUSES[$task['status']]) ?></td>
                         <td><?= esc(\App\Models\KanbanModel::PRIORITIES[$task['priority']]) ?></td>
                         <td><a class="btn btn-sm btn-outline-info" href="<?= site_url('kanban/' . $task['id'] . '/edit') ?>" title="Editar tarefa" aria-label="Editar tarefa"><i class="bi bi-pencil-square" aria-hidden="true"></i></a></td>
