@@ -47,6 +47,14 @@ $routes->post('kanban', 'Kanban::create', ['filter' => ['auth', 'csrf']]);
 $routes->get('kanban/(:num)/edit', 'Kanban::edit/$1', ['filter' => 'auth']);
 $routes->post('kanban/(:num)/update', 'Kanban::update/$1', ['filter' => ['auth', 'csrf']]);
 $routes->get('tools', 'Tools::index', ['filter' => 'auth']);
+$routes->get('tools/googleSchedule', 'GoogleSchedule::index', ['filter' => 'auth']);
+$routes->post('tools/googleSchedule', 'GoogleSchedule::save', ['filter' => ['auth', 'csrf']]);
+$routes->get('tools/subjects', 'Subjects::index', ['filter' => 'auth']);
+$routes->get('tools/subjects/add', 'Subjects::add', ['filter' => 'auth']);
+$routes->get('tools/subjects/(:num)/edit', 'Subjects::edit/$1', ['filter' => 'auth']);
+$routes->post('tools/subjects', 'Subjects::create', ['filter' => ['auth', 'csrf']]);
+$routes->post('tools/subjects/(:num)/update', 'Subjects::update/$1', ['filter' => ['auth', 'csrf']]);
+$routes->post('tools/subjects/(:num)/delete', 'Subjects::delete/$1', ['filter' => ['auth', 'csrf']]);
 $routes->get('tools/(:segment)', 'Tools::show/$1', ['filter' => 'auth']);
 $routes->get('notes', 'Notes::index', ['filter' => 'auth']);
 $routes->get('notes/add', 'Notes::add', ['filter' => 'auth']);
@@ -67,3 +75,9 @@ $routes->post('notes/(:num)/categories/(:num)/remove', 'Notes::removeCategory/$1
 $routes->post('notes/(:num)/tasks', 'Notes::createTask/$1', ['filter' => ['auth', 'csrf']]);
 
 $routes->get('notes/(:num)/subjects/(:num)', 'Notes::related/$1/$2', ['filter' => 'auth']);
+
+$routes->post('tools/googleSchedule/services/(:num)/delete', 'GoogleSchedule::delete/$1', ['filter' => ['auth', 'csrf']]);
+
+$routes->get('schedule', 'Schedule::index', ['filter' => 'auth']);
+$routes->post('schedule/sync', 'Schedule::sync', ['filter' => ['auth', 'csrf']]);
+$routes->post('schedule/(:num)/subject', 'Schedule::subject/$1', ['filter' => ['auth', 'csrf']]);

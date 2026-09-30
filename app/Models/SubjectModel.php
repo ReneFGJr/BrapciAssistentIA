@@ -86,4 +86,49 @@ class SubjectModel extends Model
             throw $exception;
         }
     }
+
+    public function findOwned(int $id, array $actor): array
+    {
+        $subject = $this->where('id', $id)->where('user_id', $this->userId($actor))->first();
+        if ($subject === null) {
+            throw PageNotFoundException::forPageNotFound();
+        }
+        return $subject;
+    }
+
+    public function saveFor(?int $id, string $name, array $actor): int
+    {
+        $userId = $this->userId($actor);
+        if ($id !== null) {
+            $this->findOwned($id, $actor);
+        }
+        $name = preg_replace('/\\s+/u', ' ', trim($name));
+        if ($name === null || $name === '' || mb_strlen($name) > 150) {
+            throw new InvalidArgumentException('Informe um assunto com até 150 caracteres.');
+        }
+        $existing = $this->where('user_id', $userId)->where('name', $name)->first();
+        if ($existing !== null && (int) $existing['id'] !== $id) {
+            throw new InvalidArgumentException('Você já possui um assunto com esse nome.');
+        }
+        if ($id === null) {
+            $created = $this->insert(['user_id' => $userId, 'name' => $name]);
+            if (!$created) {
+                throw new RuntimeException('Não foi possível salvar o assunto.');
+            }
+            return (int) $created;
+        }
+        if (!$this->where('user_id', $userId)->update($id, ['name' => $name])) {
+            throw new RuntimeException('Não foi possível salvar o assunto.');
+        }
+        return $id;
+    }
+
+    public function deleteFor(int $id, array $actor): void
+    {
+        $this->findOwned($id, $actor);
+        // Foreign keys remove note links and clear the calendar subject, preserving both records.
+        if (!$this->where('user_id', $this->userId($actor))->delete($id)) {
+            throw new RuntimeException('Não foi possível excluir o assunto.');
+        }
+    }
 }

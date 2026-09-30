@@ -18,6 +18,9 @@ $menu = [
     ['name' => 'Setup', 'url' => base_url(), 'class' => 'bi-gear-fill'],
 ];
 $user = session('auth_user');
+if (is_array($user) && !empty($user['id']) && (new \App\Models\UserServiceModel())->hasGoogle($user)) {
+    $menu[] = ['name' => 'Agenda', 'url' => site_url('schedule'), 'class' => 'bi-calendar3'];
+}
 $allowedAdminIds = array_filter(array_map('trim', explode(',', (string) env('admin.allowedUserIds', ''))));
 $canAdminister = is_array($user) && (
     filter_var($user['admin'] ?? false, FILTER_VALIDATE_BOOL)
