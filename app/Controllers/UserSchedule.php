@@ -5,6 +5,7 @@ class UserSchedule extends Schedule
 {
     protected string $schedulePath = 'userSchedule';
     protected string $configurationPath = 'tools/usergoogleSchedule';
+    protected bool $readStoredForUser = false;
 
     protected function active(): ?array
     {

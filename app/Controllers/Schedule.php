@@ -10,6 +10,7 @@ class Schedule extends BaseController
 {
     protected string $schedulePath = 'schedule';
     protected string $configurationPath = 'tools/googleSchedule';
+    protected bool $readStoredForUser = true;
 
     protected function active(): ?array
     {
@@ -17,6 +18,18 @@ class Schedule extends BaseController
     }
     public function index()
     {
+        if ($this->readStoredForUser) {
+            $actor = (array) session('auth_user');
+            $userId = (string) ($actor['id'] ?? '');
+            if ($userId === '') throw PageNotFoundException::forPageNotFound();
+            $model = new GoogleScheduleModel();
+            return view('main', ['content' => view('schedule/index', [
+                'schedulePath' => $this->schedulePath, 'configurationPath' => $this->configurationPath,
+                'events' => $model->upcomingForUser($userId)->paginate(25), 'pager' => $model->pager,
+                'lastSync' => $model->latestSyncForUser($userId),
+                'subjects' => (new SubjectModel())->forUser($actor),
+            ])]);
+        }
         try { $service = $this->active(); }
         catch (Throwable $exception) {
             return redirect()->to(site_url($this->configurationPath))->with('error', $exception instanceof \App\Libraries\GoogleCalendarException ? $exception->getMessage() : 'Não foi possível ler a configuração do Google Agenda.');
@@ -65,13 +78,21 @@ class Schedule extends BaseController
     public function subject(int $id)
     {
         try {
-            $service = $this->active();
-            if ($service === null) return redirect()->to(site_url($this->configurationPath));
             $value = $this->request->getPost('subject_id');
             if (!is_string($value) || ($value !== '' && (!ctype_digit($value) || (int) $value < 1))) {
                 return redirect()->to(site_url($this->schedulePath))->with('error', 'Selecione um assunto válido.');
             }
-            if (!(new GoogleScheduleModel())->assignSubject($id, $value === '' ? null : (int) $value, $service)) {
+            $model = new GoogleScheduleModel();
+            if ($this->readStoredForUser) {
+                $userId = (string) (((array) session('auth_user'))['id'] ?? '');
+                if ($userId === '') throw PageNotFoundException::forPageNotFound();
+                $saved = $model->assignSubjectForUser($id, $value === '' ? null : (int) $value, $userId);
+            } else {
+                $service = $this->active();
+                if ($service === null) return redirect()->to(site_url($this->configurationPath));
+                $saved = $model->assignSubject($id, $value === '' ? null : (int) $value, $service);
+            }
+            if (!$saved) {
                 throw new \RuntimeException();
             }
             return redirect()->to(site_url($this->schedulePath))->with('success', 'Assunto da reunião atualizado.');

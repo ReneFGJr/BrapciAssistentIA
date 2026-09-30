@@ -21,9 +21,6 @@ $user = session('auth_user');
 if (is_array($user) && !empty($user['id']) && (new \App\Models\UserServiceModel())->hasGoogle($user)) {
     $menu[] = ['name' => 'Agenda', 'url' => site_url('schedule'), 'class' => 'bi-calendar3'];
 }
-if (is_array($user) && !empty($user['id']) && (new \App\Models\UserServiceModel())->where('user_id', (string) $user['id'])->where('service', 'usergoogleSchedule')->countAllResults() > 0) {
-    $menu[] = ['name' => 'Agenda particular', 'url' => site_url('userSchedule'), 'class' => 'bi-calendar-lock'];
-}
 $allowedAdminIds = array_filter(array_map('trim', explode(',', (string) env('admin.allowedUserIds', ''))));
 $canAdminister = is_array($user) && (
     filter_var($user['admin'] ?? false, FILTER_VALIDATE_BOOL)

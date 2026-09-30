@@ -20,7 +20,7 @@
             <form method="post" action="<?= site_url('tools/usergoogleSchedule/connect') ?>">
                 <?= csrf_field() ?><button class="btn btn-info">Conectar com Google</button>
             </form>
-            <?php if ($configuration['connected']): ?><a class="btn btn-outline-light" href="<?= site_url('userSchedule') ?>">Abrir agenda particular</a><?php endif; ?>
+            <?php if ($configuration['connected']): ?><a class="btn btn-outline-light" href="<?= site_url('schedule') ?>">Abrir agenda particular</a><?php endif; ?>
         </div>
     <?php endif; ?>
     <div class="row g-4">

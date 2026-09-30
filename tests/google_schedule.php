@@ -20,12 +20,15 @@ verifyService($event['title'] === '<b>Reunião</b>' && $event['location'] === 'S
 $calendar->replaceSnapshot($connection, [$event]);
 $events = $calendar->upcoming($connection)->findAll();
 verifyService(count($events) === 1, 'Upcoming event stored');
+verifyService(count($calendar->upcomingForUser('owner')->findAll()) === 1
+    && $calendar->latestSyncForUser('owner') !== null, 'Stored schedule available by user');
 verifyService($calendar->upcoming($otherConnection)->findAll() === [], 'User isolation');
 $db->table('subjects')->insert(['user_id' => 'owner', 'name' => 'Pesquisa']);
 $subject = (int) $db->insertID();
 $db->table('subjects')->insert(['user_id' => 'other', 'name' => 'Privado']);
 $foreignSubject = (int) $db->insertID();
 verifyService($calendar->assignSubject((int) $events[0]['id'], $subject, $connection), 'Assign own subject');
+verifyService($calendar->assignSubjectForUser((int) $events[0]['id'], $subject, 'owner'), 'Assign subject from consolidated schedule');
 try {
     $calendar->assignSubject((int) $events[0]['id'], $foreignSubject, $connection);
     throw new LogicException('Foreign subject allowed');
@@ -51,12 +54,21 @@ try {
     $calendar->replaceSnapshot($connection, [['google_event_id' => 'bad']]);
 } catch (Throwable $exception) {}
 verifyService($calendar->upcoming($connection)->findAll() === $before, 'Failed snapshot rolled back');
-$html = view('schedule/index', ['events' => $before, 'subjects' => [], 'lastSync' => null, 'pager' => new class { public function links() { return ''; } }]);
+$rendered = array_replace($before[0], ['description' => 'Descrição que não deve aparecer']);
+$html = view('schedule/index', ['events' => [$rendered], 'subjects' => [], 'lastSync' => null, 'pager' => new class { public function links() { return ''; } }]);
 verifyService(str_contains($html, '&lt;b&gt;Reunião&lt;/b&gt;') && !str_contains($html, 'Test_Api_Key'), 'Escaped events and no key in view');
+verifyService(!str_contains($html, 'Descrição que não deve aparecer')
+    && str_contains($html, (new DateTimeImmutable($rendered['starts_at'], new DateTimeZone('UTC')))
+        ->setTimezone(new DateTimeZone($rendered['timezone']))->format('d/m/Y')), 'Events grouped by day without description');
+verifyService((bool) preg_match('/\d{2}\/\d{2}\/\d{4} \((Segunda|Terça|Quarta|Quinta|Sexta)-feira|Sábado|Domingo\)/u', $html), 'Weekday rendered in Portuguese');
 verifyService(str_contains($html, 'Sala &lt;A&gt;') && str_contains($html, 'Título da reunião'), 'Location and explicit title heading rendered');
+$linked = array_replace($before[0], ['location' => 'https://meet.example.test/room']);
+$linkedHtml = view('schedule/index', ['events' => [$linked], 'subjects' => [], 'lastSync' => null, 'pager' => new class { public function links() { return ''; } }]);
+verifyService(substr_count($linkedHtml, 'target="_blank"') === 2
+    && str_contains($linkedHtml, 'bi-link-45deg'), 'HTTP location links title and renders link icon');
 $missing = array_replace($before[0], ['title' => 'Sem título', 'location' => '']);
 $missingHtml = view('schedule/index', ['events' => [$missing], 'subjects' => [], 'lastSync' => null, 'pager' => new class { public function links() { return ''; } }]);
-verifyService(str_contains($missingHtml, 'Título não fornecido pelo Google') && str_contains($missingHtml, 'Não informado pelo Google'), 'Missing details explicit');
+verifyService(str_contains($missingHtml, 'Título não fornecido pelo Google') && !str_contains($missingHtml, 'Não informado pelo Google'), 'Missing location rendered empty');
 $model->deleteFor($connection['id'], $actor);
 verifyService(!$model->hasGoogle($actor), 'Service removal disables access');
 echo "Schedule: times, isolation, subjects, sync and view checks passed.\n";

@@ -14,6 +14,16 @@ class GoogleScheduleModel extends Model
             ->where('calendar_id', $service['email'])->where('ends_at >', gmdate('Y-m-d H:i:s'))
             ->where('status !=', 'cancelled')->orderBy('starts_at')->orderBy('id');
     }
+    public function upcomingForUser(string $userId): self
+    {
+        return $this->where('user_id', $userId)->where('ends_at >', gmdate('Y-m-d H:i:s'))
+            ->where('status !=', 'cancelled')->orderBy('starts_at')->orderBy('id');
+    }
+    public function latestSyncForUser(string $userId): ?string
+    {
+        $row = $this->selectMax('synced_at')->where('user_id', $userId)->first();
+        return is_string($row['synced_at'] ?? null) && $row['synced_at'] !== '' ? $row['synced_at'] : null;
+    }
     public function replaceSnapshot(array $service, array $events): void
     {
         $this->db->transBegin();
@@ -51,6 +61,18 @@ class GoogleScheduleModel extends Model
             throw PageNotFoundException::forPageNotFound();
         }
         return $this->db->table($this->table)->where('id', $id)->where('user_id', $service['user_id'])
+            ->update(['subject_id' => $subjectId, 'updated_at' => gmdate('Y-m-d H:i:s')]);
+    }
+    public function assignSubjectForUser(int $id, ?int $subjectId, string $userId): bool
+    {
+        if ($this->where('id', $id)->where('user_id', $userId)->first() === null) {
+            throw PageNotFoundException::forPageNotFound();
+        }
+        if ($subjectId !== null && (new SubjectModel($this->db))->where('id', $subjectId)
+            ->where('user_id', $userId)->first() === null) {
+            throw PageNotFoundException::forPageNotFound();
+        }
+        return $this->db->table($this->table)->where('id', $id)->where('user_id', $userId)
             ->update(['subject_id' => $subjectId, 'updated_at' => gmdate('Y-m-d H:i:s')]);
     }
 }

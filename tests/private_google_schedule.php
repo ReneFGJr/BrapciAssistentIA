@@ -75,6 +75,7 @@ try { $oauth->tokens([]); throw new LogicException('Failed token request accepte
 catch (GoogleCalendarException $e) { verifyService(!str_contains($e->getMessage(), 'secret must never leak'), 'Sanitized OAuth errors'); }
 $html = view('tools/user_google_schedule', ['configuration' => $private->summary($actor), 'redirectUri' => $pending['redirect_uri'], 'validRedirect' => true]);
 verifyService(!str_contains($html, 'test-secret') && !str_contains($html, 'refresh-test') && str_contains($html, 'Conectar com Google'), 'View excludes secrets');
+verifyService(str_contains($html, site_url('schedule')) && !str_contains($html, site_url('userSchedule')), 'Private calendar button redirects without private API collection');
 $stale = $private->connection($actor);
 $private->saveConfiguration($actor, 'changed@example.test', 'test-client.apps.googleusercontent.com', '');
 verifyService(!$private->summary($actor)['connected'], 'Configuration changes clear authorization');
