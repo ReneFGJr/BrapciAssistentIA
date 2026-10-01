@@ -122,7 +122,9 @@ legacyAuth.caBundle = 'D:/wamp64/cert/cacert.pem'
 ror.caBundle = 'D:/wamp64/cert/cacert.pem'
 
 # Opcionais:
-# chat.endpoint = 'https://seu-servico.example/chat'
+chat.endpoint = 'https://ollama.brapci.inf.br'
+chat.caBundle = 'C:/wamp64/cert/cacert.pem'
+# chat.model = 'nome-do-modelo-opcional'
 # admin.allowedUserIds = 'id1,id2'
 ```
 
@@ -219,7 +221,7 @@ Também existem migrações para registros de login, aplicativos e permissões. 
 
 A busca de pessoas na Brapci consulta **`brapci.users`** pela conexão MySQL configurada. Essa tabela externa não é criada pelas migrações; o usuário do banco precisa de permissão de leitura para essa funcionalidade.
 
-O chat envia a mensagem e os dados de sessão do usuário ao endereço definido em `chat.endpoint`. Sem essa configuração, o envio retorna serviço não configurado.
+O chat usa a API nativa do Ollama no endereço definido em `chat.endpoint`. Defina `chat.model` para escolher um modelo específico; quando omitido, o primeiro modelo retornado por `/api/tags` é utilizado.
 
 ## Estrutura
 
