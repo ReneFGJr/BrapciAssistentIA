@@ -7,7 +7,7 @@
             'googleSchedule' => ['Google Agenda', 'bi-calendar3', 'Configure seu e-mail e API key e veja como obter as credenciais do Google.'],
             'senha' => ['Gerador de Senha', 'bi-key', 'Crie uma senha aleatória com tamanho e caracteres personalizados.'],
             'cpf' => ['Gerador de CPF (Fake)', 'bi-person-vcard', 'Gere um CPF fictício com dígitos verificadores para testes de formulários.'],
-            'barcode' => ['Gerador de Código de Barras', 'bi-upc', 'Gere códigos CODE128 ou EAN-13 e baixe a imagem.'],
+            'barcode' => ['Gerador de Código de Barras', 'bi-upc', 'Gere códigos CODE128, Code39 ou EAN-13 e baixe a imagem.'],
             'qrcode' => ['Gerador de QR Code', 'bi-qr-code', 'Transforme um texto ou endereço em QR Code.'],
         ] as $slug => [$title, $icon, $description]): ?>
             <div class="col-md-6">

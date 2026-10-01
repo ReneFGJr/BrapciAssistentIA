@@ -28,6 +28,7 @@
                 if (typeof window.JsBarcode !== 'function') throw new Error('Não foi possível carregar o gerador. Recarregue a página.');
                 if (format.value === 'EAN13' && !/^\d{12,13}$/.test(value)) throw new Error('EAN-13 exige 12 ou 13 dígitos.');
                 if (format.value === 'CODE128' && !/^[\x20-\x7E]{1,80}$/.test(value)) throw new Error('Use até 80 caracteres sem acentos ou quebras de linha.');
+                if (format.value === 'CODE39' && !/^[A-Z0-9 .$/+%\-]{1,80}$/.test(value)) throw new Error('Code39 aceita até 80 caracteres: A–Z, 0–9, espaço e - . $ / + %. Use letras maiúsculas, sem acentos ou asteriscos.');
                 let valid = true;
                 window.JsBarcode(canvas, value, {
                     format: format.value, width: 2, height: 100, margin: 24,

@@ -6,12 +6,13 @@
             <label for="barcode-format" class="form-label">Formato</label>
             <select id="barcode-format" class="form-select mb-3">
                 <option value="CODE128">CODE128 — letras, números e símbolos</option>
+                <option value="CODE39">Code39 — letras maiúsculas, números e símbolos</option>
                 <option value="EAN13">EAN-13 — 12 ou 13 dígitos</option>
             </select>
         <?php endif; ?>
         <label for="code-content" class="form-label"><?= $tool === 'barcode' ? 'Conteúdo do código' : 'Texto ou endereço (URL)' ?></label>
         <textarea id="code-content" class="form-control mb-2" rows="3" maxlength="<?= $tool === 'barcode' ? 80 : 1500 ?>" required aria-describedby="code-help"></textarea>
-        <p id="code-help" class="small"><?= $tool === 'barcode' ? 'CODE128: até 80 caracteres sem acentos. EAN-13: com 12 dígitos, o verificador é calculado; com 13, é validado.' : 'Até 1.500 caracteres. Textos muito extensos podem ultrapassar a capacidade do QR Code.' ?></p>
+        <p id="code-help" class="small"><?= $tool === 'barcode' ? 'CODE128: até 80 caracteres sem acentos. Code39: até 80 caracteres usando A–Z, 0–9, espaço e os símbolos - . $ / + %. Digite letras maiúsculas; não inclua asteriscos de início e fim. EAN-13: com 12 dígitos, o verificador é calculado; com 13, é validado.' : 'Até 1.500 caracteres. Textos muito extensos podem ultrapassar a capacidade do QR Code.' ?></p>
         <p class="small">O conteúdo é processado no navegador e não é enviado ao servidor.</p>
         <button type="submit" class="btn btn-info"><i class="bi bi-arrow-repeat" aria-hidden="true"></i> Gerar</button>
         <p id="code-status" class="mt-3 mb-0" role="status" aria-live="polite"></p>
