@@ -15,6 +15,15 @@
 </style>
 
 <script>
+window.addEventListener('DOMContentLoaded', function () {
+    const lastMessage = document.querySelector('#chat-history .chat-message:last-child');
+    if (lastMessage) {
+        requestAnimationFrame(function () {
+            lastMessage.scrollIntoView({behavior: 'auto', block: 'end'});
+        });
+    }
+});
+
 document.getElementById('chat-prompt-form').addEventListener('submit', async function (event) {
     event.preventDefault();
 
