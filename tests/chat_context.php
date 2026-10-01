@@ -1,0 +1,27 @@
+<?php
+ob_start();
+define('ENVIRONMENT', 'testing');
+define('FCPATH', dirname(__DIR__) . '/public/');
+require dirname(__DIR__) . '/app/Config/Paths.php';
+$paths = new Config\Paths();
+require $paths->systemDirectory . '/Boot.php';
+CodeIgniter\Boot::bootConsole($paths);
+Config\Services::injectMock('request', Config\Services::incomingrequest(null, false));
+$db = Config\Database::connect(['DBDriver' => 'SQLite3', 'database' => ':memory:', 'DBPrefix' => 'test_', 'DBDebug' => true], false);
+require APPPATH . 'Database/Migrations/2026-10-01-000001_CreateChatContext.php';
+(new App\Database\Migrations\CreateChatContext(Config\Database::forge($db)))->up();
+$model = new App\Models\ChatContextModel($db);
+$id = $model->createConversation('owner');
+if ($model->conversation($id, 'other') !== null) throw new RuntimeException('Foreign conversation exposed');
+if (!$model->renameConversation($id, 'owner', 'Pesquisa')) throw new RuntimeException('Rename failed');
+$messages = [['role' => 'user', 'content' => '<script>pergunta</script>'], ['role' => 'assistant', 'content' => 'Resposta']];
+if (!$model->saveMessages($id, 'owner', $messages)) throw new RuntimeException('Context save failed');
+$conversation = $model->conversation($id, 'owner');
+if ($conversation['title'] !== 'Pesquisa' || $conversation['messages'] !== $messages) throw new RuntimeException('Context round trip failed');
+$html = view('chat/index', ['conversations' => $model->conversations('owner'), 'selected' => $conversation]);
+if (str_contains($html, '<script>pergunta</script>') || !str_contains($html, '&lt;script&gt;')) throw new RuntimeException('Chat output not escaped');
+$otherId = $model->createConversation('other');
+if ($model->deleteConversation($otherId, 'owner') || $model->conversation($otherId, 'other') === null) throw new RuntimeException('Foreign delete allowed');
+if (!$model->deleteConversation($id, 'owner') || $model->conversation($id, 'owner') !== null) throw new RuntimeException('Conversation delete failed');
+ob_end_clean();
+echo "Chat context: persistence, isolation, rename and escaping passed.\n";
