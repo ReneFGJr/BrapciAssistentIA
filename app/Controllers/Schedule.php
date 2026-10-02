@@ -4,6 +4,7 @@ use App\Models\UserServiceModel;
 use App\Models\GoogleScheduleModel;
 use App\Models\SubjectModel;
 use App\Libraries\GoogleCalendarClient;
+use App\Libraries\GoogleCalendarOAuth;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use Throwable;
 class Schedule extends BaseController
@@ -15,6 +16,17 @@ class Schedule extends BaseController
     protected function active(): ?array
     {
         return (new UserServiceModel())->googleConnection((array) session('auth_user'));
+    }
+    protected function syncConnections(): array
+    {
+        $services = [];
+        $service = $this->active();
+        if ($service !== null) $services[] = $service;
+        if ($this->readStoredForUser) {
+            $private = (new GoogleCalendarOAuth())->access((array) session('auth_user'));
+            if ($private !== null) $services[] = $private;
+        }
+        return $services;
     }
     public function index()
     {
@@ -65,10 +77,18 @@ class Schedule extends BaseController
     public function sync()
     {
         try {
-            $service = $this->active();
-            if ($service === null) return redirect()->to(site_url($this->configurationPath))->with('error', 'Cadastre o serviço Google Agenda.');
-            session()->set('schedule_attempt_' . $service['id'] . '_' . sha1($service['email']), time());
-            (new GoogleScheduleModel())->replaceSnapshot($service, (new GoogleCalendarClient())->fetch($service));
+            $services = $this->syncConnections();
+            if ($services === []) return redirect()->to(site_url($this->configurationPath))->with('error', 'Cadastre e autorize um serviço Google Agenda.');
+            $snapshots = [];
+            $client = new GoogleCalendarClient();
+            foreach ($services as $service) {
+                session()->set('schedule_attempt_' . $service['id'] . '_' . sha1($service['email']), time());
+                $snapshots[] = [$service, $client->fetch($service)];
+            }
+            $model = new GoogleScheduleModel();
+            foreach ($snapshots as [$service, $events]) {
+                $model->replaceSnapshot($service, $events);
+            }
             return redirect()->to(site_url($this->schedulePath))->with('success', 'Agenda atualizada.');
         } catch (Throwable $exception) {
             return redirect()->to(site_url($this->schedulePath))->with('error', $exception instanceof \App\Libraries\GoogleCalendarException
