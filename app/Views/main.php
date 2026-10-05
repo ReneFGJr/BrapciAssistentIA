@@ -23,7 +23,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="<?= base_url('assets/js/assistente.js') ?>"></script>
+    <script src="<?= base_url('assets/js/assistente.js') ?>?v=<?= (int) filemtime(FCPATH . 'assets/js/assistente.js') ?>"></script>
     <script src="<?= base_url('assets/js/system.js') ?>?v=<?= (int) filemtime(FCPATH . 'assets/js/system.js') ?>"></script>
 
 </body>

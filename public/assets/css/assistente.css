@@ -203,6 +203,16 @@
 .person-list-name { display: flex; align-items: center; gap: .75rem; }
 .person-list-photo { width: 48px; height: 48px; flex-shrink: 0; border-radius: 50%; object-fit: cover; border: 2px solid #8171c7; background: #091a28; }
 .person-list-photo-placeholder { display: inline-flex; align-items: center; justify-content: center; color: #bfeaff; font-size: 1.5rem; }
+.import-loading { display: none; align-items: center; gap: .65rem; color: #bfeaff; font-weight: 600; }
+.import-loading.is-visible { display: inline-flex; }
+.import-loading-spinner { width: 1.25rem; height: 1.25rem; border: 3px solid #355269; border-top-color: #00d9ff; border-radius: 50%; animation: import-spin .8s linear infinite; }
+.import-loading-dots::after { content: ''; animation: import-dots 1.2s steps(4, end) infinite; }
+@keyframes import-spin { to { transform: rotate(360deg); } }
+@keyframes import-dots { 0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75%, 100% { content: '...'; } }
+@media (prefers-reduced-motion: reduce) {
+    .import-loading-spinner { animation: none; border-top-color: #00d9ff; }
+    .import-loading-dots::after { content: '...'; animation: none; }
+}
 /* Cartões compactos; detalhes abertos pelo cartão inteiro. */
 .kanban-note { position: relative; padding: .65rem .75rem; margin-top: .65rem; border-top-width: 3px; }
 .kanban-note h3 { font-size: 1.35rem; }

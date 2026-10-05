@@ -21,8 +21,12 @@
             <label for="contacts-csv" class="form-label">Arquivo de contatos</label>
             <input id="contacts-csv" type="file" name="contacts_csv" class="form-control" accept=".csv,text/csv" required aria-describedby="contacts-csv-help">
             <small id="contacts-csv-help" class="d-block mt-2">Selecione um CSV de contatos Google em UTF-8, de até 5 MB. Para continuar fotos pendentes, envie o mesmo arquivo novamente.</small>
-            <div class="mt-3">
-                <button type="submit" class="btn btn-info"><i class="bi bi-file-earmark-arrow-up" aria-hidden="true"></i> Importar arquivo</button>
+            <div class="mt-3 d-flex flex-wrap align-items-center gap-3">
+                <button type="submit" class="btn btn-info" data-import-submit><i class="bi bi-file-earmark-arrow-up" aria-hidden="true"></i> Importar arquivo</button>
+                <div class="import-loading" data-import-loading role="status" aria-live="polite" aria-hidden="true">
+                    <span class="import-loading-spinner" aria-hidden="true"></span>
+                    <span>Importando dados<span class="import-loading-dots" aria-hidden="true"></span></span>
+                </div>
             </div>
         </form>
     </div>
