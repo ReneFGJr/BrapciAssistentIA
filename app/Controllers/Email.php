@@ -104,7 +104,7 @@ class Email extends BaseController
             ? ['id' => 0, 'email_user' => '', 'status' => 0, 'protocol' => 'imap']
             : (new EmailUserModel())->findOwned($id, $actor);
         $model = (new \App\Models\EmailUserRowModel())->forUser($actor);
-        return view('main', ['content' => view('email/account', ['account' => $account, 'accounts' => $accounts, 'messages' => $model->paginate(25), 'pager' => $model->pager])]);
+        return view('main', ['content' => view('email/account', ['account' => $account, 'accounts' => $accounts, 'messages' => $model->findAll()])]);
     }
 
     public function sync(int $id)
