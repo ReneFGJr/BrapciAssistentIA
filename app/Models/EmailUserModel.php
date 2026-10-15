@@ -11,7 +11,7 @@ class EmailUserModel extends Model
     protected $table = 'email_user';
     protected $returnType = 'array';
     protected $allowedFields = ['user_id', 'email_user', 'pass_user', 'mail_user', 'mail_port_user', 'protocol', 'security', 'lastupdated', 'created', 'status', 'smtp_host', 'smtp_port', 'smtp_security'];
-    private const SUMMARY = 'id, user_id, email_user, mail_user, mail_port_user, protocol, security, lastupdated, created, status, smtp_host, smtp_port, smtp_security';
+    private const SUMMARY = 'id, user_id, email_user, mail_user, mail_port_user, protocol, security, lastupdated, created, status, smtp_host, smtp_port, smtp_security, is_preferred';
 
     private function owner(array $actor): string
     {
@@ -30,6 +30,18 @@ class EmailUserModel extends Model
         $row = $this->select(self::SUMMARY)->where('user_id', $this->owner($actor))->find($id);
         if ($row === null) throw PageNotFoundException::forPageNotFound();
         return $row;
+    }
+
+    public function setPreferred(int $id, array $actor): void
+    {
+        $this->findOwned($id, $actor);
+        $owner = $this->owner($actor);
+        $this->db->transStart();
+        // A single statement changes the preference only among this user's accounts.
+        $table = $this->db->protectIdentifiers($this->db->prefixTable($this->table));
+        $this->db->query('UPDATE ' . $table . ' SET is_preferred = CASE WHEN id = ? THEN 1 ELSE 0 END WHERE user_id = ?', [$id, $owner]);
+        $this->db->transComplete();
+        if (!$this->db->transStatus()) throw new RuntimeException('Não foi possível definir a conta preferencial.');
     }
 
     public function saveFor(?int $id, array $data, array $actor): int

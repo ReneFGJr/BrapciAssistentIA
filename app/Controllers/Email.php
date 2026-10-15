@@ -8,6 +8,17 @@ use Throwable;
 
 class Email extends BaseController
 {
+    public function prefer(int $id)
+    {
+        try {
+            (new EmailUserModel())->setPreferred($id, (array) session('auth_user'));
+            return redirect()->to(site_url('email/config'))->with('success', 'Conta preferencial definida. Mensagens repetidas serão exibidas por essa conta.');
+        } catch (PageNotFoundException $e) { throw $e;
+        } catch (Throwable $e) {
+            return redirect()->to(site_url('email/config'))->with('error', 'Não foi possível definir a conta preferencial.');
+        }
+    }
+
     public function attachments(int $accountId, int $messageId)
     {
         try {
@@ -103,8 +114,8 @@ class Email extends BaseController
         $account = $id === 0
             ? ['id' => 0, 'email_user' => '', 'status' => 0, 'protocol' => 'imap']
             : (new EmailUserModel())->findOwned($id, $actor);
-        $model = (new \App\Models\EmailUserRowModel())->forUser($actor);
-        return view('main', ['content' => view('email/account', ['account' => $account, 'accounts' => $accounts, 'messages' => $model->findAll()])]);
+        $messages = (new \App\Models\EmailUserRowModel())->unified($actor);
+        return view('main', ['content' => view('email/account', ['account' => $account, 'accounts' => $accounts, 'messages' => $messages])]);
     }
 
     public function sync(int $id)

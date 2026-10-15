@@ -5,6 +5,8 @@ require APPPATH . 'Database/Migrations/2026-10-15-000001_CreateEmailUser.php';
 (new App\Database\Migrations\CreateEmailUser(Config\Database::forge($db)))->up();
 require APPPATH . 'Database/Migrations/2026-10-15-000003_AddEmailSmtp.php';
 (new App\Database\Migrations\AddEmailSmtp(Config\Database::forge($db)))->up();
+require APPPATH . 'Database/Migrations/2026-10-15-000004_AddEmailPreferred.php';
+(new App\Database\Migrations\AddEmailPreferred(Config\Database::forge($db)))->up();
 $emails = new App\Models\EmailUserModel($db);
 $data = ['email_user' => 'mail@example.test', 'pass_user' => 'secret-test-password', 'mail_user' => 'imap.example.test', 'mail_port_user' => '993', 'protocol' => 'imap', 'security' => 'ssl', 'status' => '1'];
 $id = $emails->saveFor(null, $data, $actor);

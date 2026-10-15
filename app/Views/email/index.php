@@ -10,11 +10,13 @@
             <tbody>
             <?php foreach ($accounts as $account): ?>
                 <tr>
-                    <?php foreach (['email_user', 'mail_user', 'mail_port_user', 'protocol'] as $field): ?><td><?= esc($account[$field]) ?></td><?php endforeach; ?>
+                    <td><?= esc($account['email_user']) ?> <?php if (!empty($account['is_preferred'])): ?><span class="badge bg-warning text-dark"><i class="bi bi-star-fill" aria-hidden="true"></i> Preferencial</span><?php endif; ?></td>
+                    <?php foreach (['mail_user', 'mail_port_user', 'protocol'] as $field): ?><td><?= esc($account[$field]) ?></td><?php endforeach; ?>
                     <td><?= $account['security'] === 'none' ? 'Sem criptografia' : esc(strtoupper($account['security'])) ?></td>
                     <td><span class="badge <?= (int) $account['status'] === 1 ? 'bg-success' : 'bg-secondary' ?>"><?= (int) $account['status'] === 1 ? 'Ativo' : 'Inativo' ?></span></td>
                     <td><?= esc($account['created']) ?></td><td><?= esc($account['lastupdated']) ?></td>
                     <td class="text-nowrap">
+                        <?php if (empty($account['is_preferred'])): ?><form class="d-inline" method="post" action="<?= site_url('email/prefer/' . $account['id']) ?>"><?= csrf_field() ?><button class="btn btn-sm btn-outline-warning" title="Definir como conta preferencial"><i class="bi bi-star" aria-hidden="true"></i> Preferencial</button></form><?php endif; ?>
                         <a class="btn btn-sm btn-primary" href="<?= site_url('email/account/' . $account['id']) ?>">Caixa de entrada</a>
                         <a class="btn btn-sm btn-outline-light" href="<?= site_url('email/edit/' . $account['id']) ?>">Editar</a>
                         <form class="d-inline" method="post" action="<?= site_url('email/delete/' . $account['id']) ?>" onsubmit="return confirm('Excluir esta conta de e-mail?');">

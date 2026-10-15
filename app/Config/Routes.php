@@ -51,6 +51,7 @@ $routes->get('kanban/(:num)/edit', 'Kanban::edit/$1', ['filter' => 'auth']);
 $routes->post('kanban/(:num)/update', 'Kanban::update/$1', ['filter' => ['auth', 'csrf']]);
 $routes->get('tools', 'Tools::index', ['filter' => 'auth']);
 $routes->get('email/config', 'Email::index', ['filter' => 'auth']);
+$routes->post('email/prefer/(:num)', 'Email::prefer/$1', ['filter' => ['auth', 'csrf']]);
 $routes->get('email/account/(:num)', 'Email::account/$1', ['filter' => 'auth']);
 $routes->get('email/account', 'Email::account', ['filter' => 'auth']);
 $routes->post('email/account/filter', 'Email::saveFilter', ['filter' => ['auth', 'csrf']]);

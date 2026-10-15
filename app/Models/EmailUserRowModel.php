@@ -31,6 +31,32 @@ class EmailUserRowModel extends Model
         return $this->forAccount($id, $actor)->where('remote_key', $key)->first() !== null;
     }
 
+    public function unified(array $actor): array
+    {
+        $accounts = array_column((new EmailUserModel($this->db))->forUser($actor), null, 'id');
+        $groups = [];
+        foreach ($this->forUser($actor)->findAll() as $row) {
+            $messageId = trim((string) ($row['message_id'] ?? ''));
+            $fingerprint = $messageId !== '' ? 'id:' . $messageId : 'body:' . hash('sha256', json_encode([
+                mb_strtolower(trim($row['email_from'])), trim($row['email_title']), $row['email_data'],
+                trim(str_replace(["\r\n", "\r"], "\n", $row['email_context'])),
+            ], JSON_THROW_ON_ERROR));
+            $groups[$fingerprint][] = $row;
+        }
+        $visible = [];
+        foreach ($groups as $copies) {
+            // Deduplicate between accounts, preserving distinct messages within one mailbox.
+            usort($copies, static function ($a, $b) use ($accounts) {
+                $preferred = (int) ($accounts[$b['email_user_id']]['is_preferred'] ?? 0) <=> (int) ($accounts[$a['email_user_id']]['is_preferred'] ?? 0);
+                return $preferred ?: ((int) $a['email_user_id'] <=> (int) $b['email_user_id']) ?: ((int) $b['id'] <=> (int) $a['id']);
+            });
+            $chosenAccount = $copies[0]['email_user_id'];
+            foreach ($copies as $copy) if ((string) $copy['email_user_id'] === (string) $chosenAccount) $visible[] = $copy;
+        }
+        usort($visible, static fn($a, $b) => strcmp($b['email_data'] ?? '', $a['email_data'] ?? '') ?: ((int) $b['id'] <=> (int) $a['id']));
+        return $visible;
+    }
+
     public function import(int $id, array $message, array $actor): bool
     {
         if ($this->known($id, $message['remote_key'], $actor)) return false;
