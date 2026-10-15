@@ -8,7 +8,15 @@ class EmailAttachments
     public static function parts(object $part, string $section = ''): array
     {
         $params = [];
-        foreach (array_merge($part->parameters ?? [], $part->dparameters ?? []) as $parameter) $params[strtolower($parameter->attribute)] = $parameter->value;
+        foreach ([$part->parameters ?? [], $part->dparameters ?? []] as $collection) {
+            // IMAP implementations can return the parameter list as stdClass.
+            $parameters = is_object($collection) && isset($collection->attribute) ? [$collection] : (array) $collection;
+            foreach ($parameters as $parameter) {
+                $parameter = (object) $parameter;
+                if (!is_string($parameter->attribute ?? null) || !is_string($parameter->value ?? null)) continue;
+                $params[strtolower($parameter->attribute)] = $parameter->value;
+            }
+        }
         $filename = $params['filename'] ?? $params['name'] ?? '';
         foreach (['filename', 'name'] as $key) {
             $extended = $params[$key . '*'] ?? '';

@@ -16,6 +16,16 @@ verifyService(!str_contains($parts[2]['name'], '/') && !str_contains($parts[2]['
 verifyService(App\Libraries\EmailAttachments::parts((object) ['type' => 0]) === [], 'Plain body is not attachment');
 $method = new ReflectionMethod(App\Libraries\EmailInbox::class, 'hasAttachments');
 verifyService($method->invoke(new App\Libraries\EmailInbox(), $structure), 'Attachment flag includes text files');
+// Match production IMAP responses where MIME collections are stdClass objects.
+$objectStructure = unserialize(serialize($structure));
+$objectStructure->parts[1]->parameters = new stdClass();
+$objectStructure->parts[1]->dparameters = (object) $objectStructure->parts[1]->dparameters;
+$objectStructure->parts[2]->parts[0]->dparameters = (object) $objectStructure->parts[2]->parts[0]->dparameters;
+$objectStructure->parts[2]->parts[1]->parameters = (object) $objectStructure->parts[2]->parts[1]->parameters;
+verifyService(App\Libraries\EmailAttachments::parts($objectStructure) === $parts, 'stdClass parameter collections preserve attachment names and sections');
+verifyService($method->invoke(new App\Libraries\EmailInbox(), $objectStructure), 'Production object collections do not interrupt import');
+$singleParameter = (object) ['type' => 3, 'disposition' => 'attachment', 'parameters' => (object) ['attribute' => 'name', 'value' => 'arquivo.pdf']];
+verifyService(App\Libraries\EmailAttachments::parts($singleParameter)[0]['name'] === 'arquivo.pdf', 'Single object parameter supported');
 echo "Email attachments: MIME hierarchy, text files, Unicode filenames and safe names passed.\n";
 verifyService(App\Libraries\EmailAttachmentPreview::mime('teste.txt', 'Texto de exemplo') === 'text/plain; charset=UTF-8', 'Text preview');
 verifyService(App\Libraries\EmailAttachmentPreview::mime('teste.html', '<script>alert(1)</script>') === 'text/plain; charset=UTF-8', 'HTML rendered only as text');
