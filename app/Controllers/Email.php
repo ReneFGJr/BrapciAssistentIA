@@ -109,9 +109,13 @@ class Email extends BaseController
 
     public function sync(int $id)
     {
+        $stage = 'ambiente PHP';
         try {
+            if (!function_exists('imap_open')) throw new \App\Exceptions\EmailInboxException('A extensão IMAP não está disponível no PHP que atende o site em produção. Habilite-a nesse PHP e reinicie o serviço web/PHP.');
             $actor = (array) session('auth_user');
+            $stage = 'leitura das credenciais';
             $account = (new EmailUserModel())->connection($id, $actor);
+            $stage = 'consulta e importação';
             $count = (new \App\Libraries\EmailInbox())->sync($account, $actor, new \App\Models\EmailUserRowModel());
             if ($this->request->isAJAX()) return $this->response->setJSON(['count' => $count, 'csrf' => csrf_hash()]);
             return redirect()->to(site_url('email/account/' . $id))->with('success', 'Consulta concluída: ' . $count . ' mensagem(ns) importada(s). Atualize novamente para buscar mais.');
@@ -119,8 +123,16 @@ class Email extends BaseController
             throw $e;
         } catch (InvalidArgumentException $e) {
             $error = $e->getMessage();
+        } catch (\App\Exceptions\EmailInboxException $e) {
+            $error = $e->getMessage();
+        } catch (\CodeIgniter\Database\Exceptions\DatabaseException $e) {
+            log_message('error', 'Email sync account {account}, stage {stage}, exception {type}, code {code}, at {file}:{line}.', ['account' => $id, 'stage' => $stage, 'type' => get_class($e), 'code' => $e->getCode(), 'file' => basename($e->getFile()), 'line' => $e->getLine()]);
+            $error = 'Falha no banco de dados de produção. Verifique a conexão, as permissões e aplique as migrações pendentes com php spark migrate.';
         } catch (Throwable $e) {
-            $error = 'Não foi possível concluir a consulta. Confira as credenciais, a conexão e a extensão IMAP do PHP. Mensagens já importadas foram preservadas.';
+            log_message('error', 'Email sync account {account}, stage {stage}, exception {type}, code {code}, at {file}:{line}.', ['account' => $id, 'stage' => $stage, 'type' => get_class($e), 'code' => $e->getCode(), 'file' => basename($e->getFile()), 'line' => $e->getLine()]);
+            $error = $stage === 'leitura das credenciais'
+                ? 'Não foi possível ler a senha da conta. Verifique se encryption.key em produção é a chave original usada para criptografar as contas, ou cadastre novamente a senha neste ambiente.'
+                : 'Falha na etapa: ' . $stage . '. Consulte o registro de erros em writable/logs no servidor de produção. Mensagens já importadas foram preservadas.';
         }
         if ($this->request->isAJAX()) return $this->response->setStatusCode(502)->setJSON(['error' => $error, 'csrf' => csrf_hash()]);
         return redirect()->to(site_url('email/account/' . $id))->with('error', $error);
