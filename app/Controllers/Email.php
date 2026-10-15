@@ -137,10 +137,10 @@ class Email extends BaseController
         } catch (\App\Exceptions\EmailInboxException $e) {
             $error = $e->getMessage();
         } catch (\CodeIgniter\Database\Exceptions\DatabaseException $e) {
-            log_message('error', 'Email sync account {account}, stage {stage}, exception {type}, code {code}, at {file}:{line}.', ['account' => $id, 'stage' => $stage, 'type' => get_class($e), 'code' => $e->getCode(), 'file' => basename($e->getFile()), 'line' => $e->getLine()]);
+            log_message('error', 'Email sync account {account_id}, stage {sync_stage}, exception {exception_type}, code {exception_code}, origin {origin_file}:{origin_line}; detail: {type_detail}; calls: {call_path}.', \App\Libraries\EmailSyncDiagnostic::context($e, $id, $stage, $account ?? []));
             $error = 'Falha no banco de dados de produção. Verifique a conexão, as permissões e aplique as migrações pendentes com php spark migrate.';
         } catch (Throwable $e) {
-            log_message('error', 'Email sync account {account}, stage {stage}, exception {type}, code {code}, at {file}:{line}.', ['account' => $id, 'stage' => $stage, 'type' => get_class($e), 'code' => $e->getCode(), 'file' => basename($e->getFile()), 'line' => $e->getLine()]);
+            log_message('error', 'Email sync account {account_id}, stage {sync_stage}, exception {exception_type}, code {exception_code}, origin {origin_file}:{origin_line}; detail: {type_detail}; calls: {call_path}.', \App\Libraries\EmailSyncDiagnostic::context($e, $id, $stage, $account ?? []));
             $error = $stage === 'leitura das credenciais'
                 ? 'Não foi possível ler a senha da conta. Verifique se encryption.key em produção é a chave original usada para criptografar as contas, ou cadastre novamente a senha neste ambiente.'
                 : 'Falha na etapa: ' . $stage . '. Consulte o registro de erros em writable/logs no servidor de produção. Mensagens já importadas foram preservadas.';
