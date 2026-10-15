@@ -6,6 +6,7 @@ $user = session('auth_user');
 $menu = [
     ['name' => 'Dashboard', 'url' => base_url('dashboard'), 'class' => 'bi-grid-fill'],
     ['name' => 'Pessoas', 'url' => base_url('person'), 'class' => 'bi-people-fill'],
+    ['name' => 'E-mail — Caixa de entrada', 'url' => site_url('email/account/'), 'class' => 'bi-envelope-fill'],
     ['name' => 'Notas de reuniões', 'url' => site_url('notes'), 'class' => 'bi-journal-check'],
 ];
 if (is_array($user) && !empty($user['id']) && (new \App\Models\UserServiceModel())->where('user_id', (string) $user['id'])->where('service', 'usergoogleSchedule')->countAllResults() > 0) {

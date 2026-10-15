@@ -1,6 +1,12 @@
 <section class="tools-page col-12 p-3 text-light">
     <h1 class="h3 mb-4">Ferramentas</h1>
     <div class="row g-3">
+        <div class="col-md-6">
+            <a href="<?= site_url('email/config') ?>" class="tools-tile d-block h-100 p-4 rounded">
+                <h2 class="h5"><i class="bi bi-envelope" aria-hidden="true"></i> Gerenciamento de e-mail</h2>
+                <p class="mb-0">Cadastre e gerencie suas contas de e-mail.</p>
+            </a>
+        </div>
         <?php foreach ([
             'subjects' => ['Assuntos', 'bi-tags', 'Cadastre, edite e exclua seus assuntos de notas e reuniões.'],
             'usergoogleSchedule' => ['Google Agenda particular', 'bi-calendar-lock', 'Conecte sua conta Google com OAuth para consultar os detalhes das reuniões da agenda particular.'],
