@@ -118,8 +118,35 @@ class Email extends BaseController
         return view('main', ['content' => view('email/account', ['account' => $account, 'accounts' => $accounts, 'messages' => $messages])]);
     }
 
+    public function inboxRedirect()
+    {
+        return redirect()->to(site_url('email/account'));
+    }
+
+    public function syncAll()
+    {
+        $actor = (array) session('auth_user');
+        $accounts = (new EmailUserModel())->forUser($actor);
+        $count = 0;
+        $failed = 0;
+        foreach ($accounts as $account) {
+            if ((int) $account['status'] !== 1) continue;
+            $connection = [];
+            try {
+                $connection = (new EmailUserModel())->connection((int) $account['id'], $actor);
+                $count += (new \App\Libraries\EmailInbox())->sync($connection, $actor, new \App\Models\EmailUserRowModel());
+            } catch (Throwable $e) {
+                $failed++;
+                log_message('error', 'Email sync account {account_id}, stage {sync_stage}, exception {exception_type}, origin {origin_file}:{origin_line}; detail: {type_detail}; calls: {call_path}.', \App\Libraries\EmailSyncDiagnostic::context($e, (int) $account['id'], 'sincronização unificada', $connection ?? []));
+            }
+        }
+        $message = $count . ' mensagem(ns) importada(s).' . ($failed ? ' Falha em ' . $failed . ' conta(s). Consulte o registro de erros do servidor.' : ' Consulta concluída.');
+        return redirect()->to(site_url('email/account'))->with($failed ? 'error' : 'success', $message);
+    }
+
     public function sync(int $id)
     {
+        if ($id === 0) return $this->syncAll();
         $stage = 'ambiente PHP';
         try {
             if (!function_exists('imap_open')) throw new \App\Exceptions\EmailInboxException('A extensão IMAP não está disponível no PHP que atende o site em produção. Habilite-a nesse PHP e reinicie o serviço web/PHP.');

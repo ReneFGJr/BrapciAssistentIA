@@ -17,7 +17,7 @@ $replyDraft = (array) session()->getFlashdata('email_reply_draft');
         <div><h1 class="h4 mb-1"><i class="bi bi-inbox me-2" aria-hidden="true"></i>Caixa de entrada unificada</h1><span class="small text-light">Todas as suas contas · <?= count($accounts) ?> conta(s)</span></div>
         <div class="d-flex gap-2">
             <a class="btn btn-outline-light" href="<?= site_url('email/config') ?>" title="Gerenciar contas" aria-label="Gerenciar contas"><i class="bi bi-gear" aria-hidden="true"></i></a>
-            <form id="mail-sync-all" method="post" action="<?= site_url('email/account/' . $account['id'] . '/sync') ?>">
+            <form id="mail-sync-all" method="post" action="<?= site_url('email/account/sync') ?>">
                 <?= csrf_field() ?><button class="btn btn-primary" title="Atualizar todas as contas ativas" <?= $activeAccounts === [] ? 'disabled' : '' ?>><i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Atualizar</button>
             </form>
         </div>
