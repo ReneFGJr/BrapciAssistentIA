@@ -19,4 +19,8 @@ $rows->import($firstId, array_replace($fallback, ['remote_key' => hash('sha256',
 verifyService(count($rows->unified($actor)) === 3, 'Different contents without Message-ID stay distinct');
 $html = view('email/index', ['accounts' => $emails->forUser($actor)]);
 verifyService(str_contains($html, 'Preferencial') && str_contains($html, 'email/prefer/' . $secondId), 'Preferred badge and selection action');
+$chosen = array_values(array_filter($rows->unified($actor), static fn($row) => $row['message_id'] === $message['message_id']))[0];
+$rows->markServerDeleted($firstId, (int) $chosen['id'], $actor);
+verifyService(count($rows->unified($actor)) === 2, 'Deleted preferred message stays hidden without resurrecting duplicate');
+verifyService($rows->findOwned($firstId, (int) $chosen['id'], $actor)['email_context'] === $chosen['email_context'], 'Hidden message remains stored');
 echo "Email preference: deduplication, switching, fallback and ownership passed.\n";

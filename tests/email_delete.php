@@ -58,6 +58,14 @@ $messageId = (int) $rows->forAccount($id, $actor)->first()['id'];
 try { $rows->deleteFor($id, $messageId, $other); throw new LogicException('Foreign deletion allowed'); }
 catch (CodeIgniter\Exceptions\PageNotFoundException $e) {}
 verifyService($rows->findOwned($id, $messageId, $actor)['remote_key'] === $message['remote_key'], 'Foreign deletion preserves row');
+try { $rows->markServerDeleted($id, $messageId, $other); throw new LogicException('Foreign server deletion marking allowed'); }
+catch (CodeIgniter\Exceptions\PageNotFoundException $e) {}
+$before = $rows->findOwned($id, $messageId, $actor);
+$rows->markServerDeleted($id, $messageId, $actor);
+$after = $rows->findOwned($id, $messageId, $actor);
+verifyService(!empty($after['server_deleted_at']) && $after['email_context'] === $before['email_context'], 'Server deletion preserves database content');
+$rows->markServerDeleted($id, $messageId, $actor);
+verifyService($rows->findOwned($id, $messageId, $actor)['server_deleted_at'] === $after['server_deleted_at'], 'Repeated marking is idempotent');
 $rows->deleteFor($id, $messageId, $actor);
 verifyService($rows->forAccount($id, $actor)->findAll() === [], 'Local removal');
 echo "Email deletion: targeted UID, capability guard, failures and ownership passed.\n";

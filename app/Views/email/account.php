@@ -53,7 +53,7 @@ $replyDraft = (array) session()->getFlashdata('email_reply_draft');
             <?php endforeach; ?>
                 <p id="mail-empty-list" class="p-4 text-center" <?= $messages !== [] ? 'hidden' : '' ?>><?= $messages === [] ? 'Nenhuma mensagem salva. Clique em Atualizar para consultar o servidor.' : 'Nenhuma mensagem encontrada.' ?></p>
             </div>
-            <div class="mail-page-nav small text-light"><?= count($messages) ?> mensagem(ns)</div>
+            <div class="mail-page-nav small text-light" id="mail-message-count"><?= count($messages) ?> mensagem(ns)</div>
         </div>
         <div class="mail-reader" aria-label="Leitura da mensagem">
             <div id="mail-placeholder" class="mail-placeholder"><i class="bi bi-envelope-open" aria-hidden="true"></i><h2 class="h5">Selecione uma mensagem</h2><p>O conteúdo do e-mail aparecerá aqui.</p></div>
@@ -69,8 +69,8 @@ $replyDraft = (array) session()->getFlashdata('email_reply_draft');
                         </form>
                     <?php endforeach; ?>
                     <?php if ($messageAccount['protocol'] === 'imap'): ?>
-                    <form method="post" action="<?= site_url('email/account/' . $messageAccount['id'] . '/messages/' . $message['id'] . '/delete') ?>" onsubmit="if (!confirm('Excluir permanentemente esta mensagem do servidor IMAP e do sistema? Esta ação não pode ser desfeita.')) return false; this.querySelector('button').disabled = true;">
-                        <?= csrf_field() ?><button class="btn btn-sm btn-outline-danger" title="Excluir do sistema e do servidor IMAP" aria-label="Excluir do sistema e do servidor IMAP" <?= (int) $messageAccount['status'] !== 1 ? 'disabled' : '' ?>><i class="bi bi-trash" aria-hidden="true"></i></button>
+                    <form class="mail-delete-form" data-account="<?= (int) $messageAccount['id'] ?>" data-message="<?= (int) $message['id'] ?>" method="post" action="<?= site_url('email/account/' . $messageAccount['id'] . '/messages/' . $message['id'] . '/delete') ?>">
+                        <?= csrf_field() ?><button class="btn btn-sm btn-outline-danger" title="Excluir do servidor IMAP e manter no banco" aria-label="Excluir do servidor IMAP e manter no banco" <?= ((int) $messageAccount['status'] !== 1 || !empty($message['server_deleted_at'])) ? 'disabled' : '' ?>><i class="bi bi-trash" aria-hidden="true"></i></button>
                     </form>
                     <?php endif; ?>
                     <form method="post" action="<?= site_url('email/account/' . $messageAccount['id'] . '/messages/' . $message['id'] . '/send') ?>" onsubmit="if (!confirm('Encaminhar esta mensagem, sem anexos, para o e-mail do seu perfil?')) return false; this.querySelector('button').disabled = true;">
@@ -86,6 +86,7 @@ $replyDraft = (array) session()->getFlashdata('email_reply_draft');
                         <button type="submit" class="btn btn-primary" title="Enviar resposta por esta conta" aria-label="Enviar resposta por esta conta"><i class="bi bi-send" aria-hidden="true"></i></button>
                     </form>
                     <h2><?= esc($message['email_title'] ?: '(Sem assunto)') ?></h2>
+                    <?php if (!empty($message['server_deleted_at'])): ?><p class="small text-warning"><i class="bi bi-cloud-slash" aria-hidden="true"></i> Excluído do servidor IMAP. Cópia preservada no banco; os anexos do servidor podem não estar disponíveis.</p><?php endif; ?>
                     <p class="small text-info mb-2"><i class="bi bi-inbox" aria-hidden="true"></i> Conta: <?= esc($messageAccount['email_user']) ?></p>
                     <div class="mail-envelope"><div><strong>De:</strong> <?= esc($message['email_from']) ?></div><div><strong>Para:</strong> <?= esc($message['email_to']) ?></div><time><?= esc($message['email_data'] ?? 'Data indisponível') ?><?= $message['email_data'] ? ' UTC' : '' ?></time></div>
                     <div class="mail-content-layout">
@@ -279,6 +280,30 @@ $replyDraft = (array) session()->getFlashdata('email_reply_draft');
             scheduleRead();
         }
     });
+    shell.querySelectorAll('.mail-delete-form').forEach(form => form.addEventListener('submit', async event => {
+        event.preventDefault();
+        const button = form.querySelector('button');
+        if (button.disabled) return;
+        button.disabled = true;
+        cancelRead();
+        const notice = document.getElementById('mail-save-notice');
+        notice.textContent = 'Excluindo mensagem…';
+        try {
+            const data = await post('/messages/' + form.dataset.message + '/delete', {}, () => true, accountBase + '/' + form.dataset.account);
+            const row = rows.find(item => item.dataset.message === form.dataset.message);
+            const panel = document.getElementById('message-' + form.dataset.message);
+            if (selected === row) close();
+            if (row) { rows.splice(rows.indexOf(row), 1); row.remove(); }
+            if (panel) { panels.splice(panels.indexOf(panel), 1); panel.remove(); }
+            document.getElementById('mail-message-count').textContent = rows.length + ' mensagem(ns)';
+            if (rows.length === 0) document.getElementById('mail-empty-list').textContent = 'Nenhuma mensagem na caixa de entrada.';
+            apply(true);
+            notice.textContent = data.message;
+        } catch (error) {
+            notice.textContent = error.message;
+            button.disabled = false;
+        } finally { scheduleRead(); }
+    }));
     shell.querySelectorAll('form').forEach(form => form.addEventListener('submit', event => {
         if (event.defaultPrevented) return;
         event.preventDefault();

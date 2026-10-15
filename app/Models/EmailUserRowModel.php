@@ -51,7 +51,7 @@ class EmailUserRowModel extends Model
                 return $preferred ?: ((int) $a['email_user_id'] <=> (int) $b['email_user_id']) ?: ((int) $b['id'] <=> (int) $a['id']);
             });
             $chosenAccount = $copies[0]['email_user_id'];
-            foreach ($copies as $copy) if ((string) $copy['email_user_id'] === (string) $chosenAccount) $visible[] = $copy;
+            foreach ($copies as $copy) if ((string) $copy['email_user_id'] === (string) $chosenAccount && empty($copy['server_deleted_at'])) $visible[] = $copy;
         }
         usort($visible, static fn($a, $b) => strcmp($b['email_data'] ?? '', $a['email_data'] ?? '') ?: ((int) $b['id'] <=> (int) $a['id']));
         return $visible;
@@ -78,6 +78,15 @@ class EmailUserRowModel extends Model
     {
         $this->findOwned($accountId, $id, $actor);
         if (!$this->where('user_id', (string) $actor['id'])->where('email_user_id', $accountId)->delete($id)) throw new RuntimeException('A mensagem foi excluída do servidor, mas não foi possível remover a cópia local.');
+    }
+
+    public function markServerDeleted(int $accountId, int $id, array $actor): void
+    {
+        $row = $this->findOwned($accountId, $id, $actor);
+        if (!empty($row['server_deleted_at'])) return;
+        $now = gmdate('Y-m-d H:i:s');
+        if (!$this->db->table($this->table)->where('id', $id)->where('email_user_id', $accountId)->where('user_id', (string) $actor['id'])
+            ->update(['server_deleted_at' => $now, 'lastupdated' => $now])) throw new RuntimeException('Não foi possível registrar a exclusão no servidor. A mensagem permanece no banco.');
     }
 
     public function markRead(int $accountId, int $id, array $actor): int

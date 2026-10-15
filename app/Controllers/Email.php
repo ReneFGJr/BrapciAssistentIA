@@ -182,12 +182,17 @@ class Email extends BaseController
             $actor = (array) session('auth_user');
             $model = new \App\Models\EmailUserRowModel();
             $message = $model->findOwned($accountId, $messageId, $actor);
+            if (!empty($message['server_deleted_at'])) {
+                if ($this->request->isAJAX()) return $this->response->setJSON(['message' => 'Mensagem já excluída do IMAP. Cópia preservada no banco.', 'csrf' => csrf_hash()]);
+                return redirect()->to(site_url('email/account'))->with('success', 'Mensagem já excluída do IMAP. Cópia preservada no banco.');
+            }
             $account = (new EmailUserModel())->connection($accountId, $actor);
             $deletedFromServer = (new \App\Libraries\EmailMessageDeletion())->delete($account, $message);
-            $model->deleteFor($accountId, $messageId, $actor);
+            $model->markServerDeleted($accountId, $messageId, $actor);
+            if ($this->request->isAJAX()) return $this->response->setJSON(['message' => 'Mensagem removida da caixa de entrada. Cópia preservada no banco.', 'csrf' => csrf_hash()]);
             return redirect()->to(site_url('email/account/' . $accountId))->with('success', $deletedFromServer
-                ? 'Mensagem excluída do servidor IMAP e do sistema.'
-                : 'A mensagem já não estava na caixa de entrada do servidor. A cópia local foi removida.');
+                ? 'Mensagem excluída do servidor IMAP. Cópia preservada no banco.'
+                : 'A mensagem já não estava na caixa de entrada do servidor. Cópia preservada no banco.');
         } catch (PageNotFoundException $e) {
             throw $e;
         } catch (\RuntimeException | InvalidArgumentException $e) {
@@ -195,6 +200,7 @@ class Email extends BaseController
         } catch (Throwable $e) {
             $error = 'Não foi possível concluir a exclusão. A cópia local foi mantida.';
         }
+        if ($this->request->isAJAX()) return $this->response->setStatusCode(502)->setJSON(['error' => $error, 'csrf' => csrf_hash()]);
         return redirect()->to(site_url('email/account/' . $accountId))->with('error', $error);
     }
 
