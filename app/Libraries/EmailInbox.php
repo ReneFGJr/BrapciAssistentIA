@@ -2,14 +2,14 @@
 namespace App\Libraries;
 
 use App\Models\EmailUserRowModel;
-use RuntimeException;
+use App\Exceptions\EmailInboxException;
 
 class EmailInbox
 {
     public function sync(array $account, array $actor, EmailUserRowModel $messages): int
     {
-        if (!function_exists('imap_open')) throw new RuntimeException('Habilite a extensão IMAP do PHP no servidor.');
-        if (!preg_match('/^[a-zA-Z0-9.-]+$/D', $account['mail_user']) || !in_array($account['protocol'], ['imap', 'pop3'], true) || !in_array($account['security'], ['ssl', 'tls', 'none'], true)) throw new RuntimeException('Configuração de servidor inválida.');
+        if (!function_exists('imap_open')) throw new EmailInboxException('A extensão IMAP não está disponível no PHP que atende o site em produção. Habilite-a nesse PHP e reinicie o serviço web/PHP.');
+        if (!preg_match('/^[a-zA-Z0-9.-]+$/D', $account['mail_user']) || !in_array($account['protocol'], ['imap', 'pop3'], true) || !in_array($account['security'], ['ssl', 'tls', 'none'], true)) throw new EmailInboxException('Configuração de servidor inválida.');
         $security = ['ssl' => '/ssl/validate-cert', 'tls' => '/tls/validate-cert', 'none' => '/notls'][$account['security']];
         $mailbox = '{' . $account['mail_user'] . ':' . (int) $account['mail_port_user'] . '/' . $account['protocol'] . '/norsh' . $security . '}INBOX';
         imap_timeout(IMAP_OPENTIMEOUT, 10);
@@ -17,8 +17,9 @@ class EmailInbox
         imap_timeout(IMAP_WRITETIMEOUT, 10);
         $stream = @imap_open($mailbox, $account['email_user'], $account['password'], $account['protocol'] === 'imap' ? OP_READONLY : 0, 1);
         if ($stream === false) {
-            imap_errors(); imap_alerts();
-            throw new RuntimeException('Não foi possível conectar. Confira servidor, porta, segurança e senha de aplicativo.');
+            $errors = imap_errors() ?: [];
+            imap_alerts();
+            throw EmailInboxException::connectionFailure($errors);
         }
         $count = 0;
         $started = microtime(true);
@@ -26,21 +27,21 @@ class EmailInbox
             $validity = 'pop3';
             if ($account['protocol'] === 'imap') {
                 $status = imap_status($stream, $mailbox, SA_UIDVALIDITY);
-                if (!$status || empty($status->uidvalidity)) throw new RuntimeException('Não foi possível identificar a caixa de entrada.');
+                if (!$status || empty($status->uidvalidity)) throw new EmailInboxException('Não foi possível identificar a caixa de entrada.');
                 $validity = (string) $status->uidvalidity;
             }
             // Newest first. Repeated clicks continue importing older, missing messages.
             for ($number = imap_num_msg($stream); $number >= 1 && $count < 50 && microtime(true) - $started < 20; $number--) {
                 $header = imap_fetchheader($stream, $number);
                 $overview = imap_fetch_overview($stream, (string) $number, 0);
-                if ($header === false || !$overview) throw new RuntimeException('Falha ao consultar uma mensagem. Tente atualizar novamente.');
+                if ($header === false || !$overview) throw new EmailInboxException('Falha ao consultar uma mensagem. Tente atualizar novamente.');
                 $info = $overview[0];
                 $key = hash('sha256', $account['protocol'] . '|' . $account['mail_user'] . '|' . $account['email_user'] . '|' . $validity . '|' . ($account['protocol'] === 'imap' ? imap_uid($stream, $number) : $header));
                 if ($messages->known((int) $account['id'], $key, $actor)) continue;
                 // Do not fetch oversized bodies; leave them for the original mail client.
                 if (($info->size ?? 0) > 10 * 1024 * 1024) continue;
                 $structure = imap_fetchstructure($stream, $number);
-                if (!$structure) throw new RuntimeException('Falha ao consultar o conteúdo da mensagem.');
+                if (!$structure) throw new EmailInboxException('Falha ao consultar o conteúdo da mensagem.');
                 $body = $this->body($stream, $number, $structure);
                 $parsedDate = isset($info->date) ? strtotime($info->date) : false;
                 $messages->import((int) $account['id'], [
@@ -93,7 +94,7 @@ class EmailInbox
         }
         if ((int) $part->type !== 0) return '';
         $raw = $section === '' ? imap_body($stream, $number, FT_PEEK) : imap_fetchbody($stream, $number, $section, FT_PEEK);
-        if ($raw === false) throw new RuntimeException('Falha ao baixar conteúdo da mensagem.');
+        if ($raw === false) throw new EmailInboxException('Falha ao baixar conteúdo da mensagem.');
         $raw = match ((int) $part->encoding) { 3 => base64_decode($raw) ?: '', 4 => quoted_printable_decode($raw), default => $raw };
         $charset = 'UTF-8';
         foreach ($part->parameters ?? [] as $parameter) if (strtolower($parameter->attribute) === 'charset') $charset = $parameter->value;
