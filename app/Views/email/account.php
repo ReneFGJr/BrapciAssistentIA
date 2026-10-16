@@ -23,7 +23,6 @@ $replyDraft = (array) session()->getFlashdata('email_reply_draft');
         </div>
     </header>
     <?php if ($activeAccounts === []): ?><div class="alert alert-warning m-3">Nenhuma conta ativa. Ative uma conta na configuração para consultar o servidor.</div><?php endif; ?>
-    <p id="mail-save-notice" class="px-3 mb-0 small text-warning" role="status" aria-live="polite"></p>
     <div class="mail-layout">
         <div class="mail-list">
             <div class="mail-search">
@@ -126,6 +125,9 @@ $replyDraft = (array) session()->getFlashdata('email_reply_draft');
 @media(max-width:750px){.mail-message{max-height:85vh;max-height:85dvh;overflow:auto}.mail-actions{margin:-20px -20px 0;padding:12px 20px}}</style>
 <script>
 (() => {
+    function notify(message, status = 'info') {
+        window.setOperationStatus(message, status);
+    }
     const shell = document.getElementById('mail-shell');
     const rows = [...shell.querySelectorAll('.mail-row')];
     const panels = [...shell.querySelectorAll('.mail-message')];
@@ -254,7 +256,7 @@ $replyDraft = (array) session()->getFlashdata('email_reply_draft');
                     row.classList.toggle('unread', data.status === 0);
                     // Keep the open message readable, even in the unread filter.
                     apply(true);
-                }).catch(() => { document.getElementById('mail-save-notice').textContent = 'Não foi possível marcar como lido. Abra a mensagem novamente para tentar outra vez.'; });
+                }).catch(() => { notify('Não foi possível marcar como lido. Abra a mensagem novamente para tentar outra vez.', 'error'); });
         }, 10000);
     }
     document.addEventListener('visibilitychange', scheduleRead);
@@ -265,17 +267,16 @@ $replyDraft = (array) session()->getFlashdata('email_reply_draft');
         if (button.disabled) return;
         button.disabled = true;
         cancelRead();
-        const notice = document.getElementById('mail-save-notice');
         const failures = [];
         let total = 0;
         for (const item of activeAccounts) {
-            notice.textContent = 'Consultando ' + item.email + '…';
+            notify('Consultando ' + item.email + '…');
             try { const data = await post('/sync', {}, () => true, accountBase + '/' + item.id); total += data.count; }
             catch (error) { failures.push(item.email + ': ' + error.message); }
         }
         if (failures.length === 0) window.location.reload();
         else {
-            notice.textContent = total + ' mensagem(ns) importada(s). ' + failures.join(' ') + ' Recarregue a página para ver as mensagens importadas.';
+            notify(total + ' mensagem(ns) importada(s). ' + failures.join(' ') + ' Recarregue a página para ver as mensagens importadas.', 'error');
             button.disabled = false;
             scheduleRead();
         }
@@ -286,8 +287,7 @@ $replyDraft = (array) session()->getFlashdata('email_reply_draft');
         if (button.disabled) return;
         button.disabled = true;
         cancelRead();
-        const notice = document.getElementById('mail-save-notice');
-        notice.textContent = 'Excluindo mensagem…';
+        notify('Excluindo mensagem…');
         try {
             const data = await post('/messages/' + form.dataset.message + '/delete', {}, () => true, accountBase + '/' + form.dataset.account);
             const row = rows.find(item => item.dataset.message === form.dataset.message);
@@ -298,9 +298,9 @@ $replyDraft = (array) session()->getFlashdata('email_reply_draft');
             document.getElementById('mail-message-count').textContent = rows.length + ' mensagem(ns)';
             if (rows.length === 0) document.getElementById('mail-empty-list').textContent = 'Nenhuma mensagem na caixa de entrada.';
             apply(true);
-            notice.textContent = data.message;
+            notify(data.message, 'success');
         } catch (error) {
-            notice.textContent = error.message;
+            notify(error.message, 'error');
             button.disabled = false;
         } finally { scheduleRead(); }
     }));
@@ -338,7 +338,7 @@ $replyDraft = (array) session()->getFlashdata('email_reply_draft');
         filter = button.dataset.filter;
         shell.querySelectorAll('[data-filter]').forEach(item => { item.classList.toggle('btn-primary', item === button); item.classList.toggle('btn-outline-light', item !== button); item.setAttribute('aria-pressed', String(item === button)); });
         apply();
-        post('/filter', {filter}).catch(() => { document.getElementById('mail-save-notice').textContent = 'Não foi possível salvar o filtro na sessão. Tente novamente.'; });
+        post('/filter', {filter}).catch(() => { notify('Não foi possível salvar o filtro na sessão. Tente novamente.', 'error'); });
     }));
     shell.querySelectorAll('[data-filter]').forEach(button => {
         const active = button.dataset.filter === filter;
