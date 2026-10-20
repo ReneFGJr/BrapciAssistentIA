@@ -54,18 +54,19 @@ try {
     $calendar->replaceSnapshot($connection, [['google_event_id' => 'bad']]);
 } catch (Throwable $exception) {}
 verifyService($calendar->upcoming($connection)->findAll() === $before, 'Failed snapshot rolled back');
-$rendered = array_replace($before[0], ['description' => 'Descrição que não deve aparecer']);
+$rendered = array_replace($before[0], ['description' => 'Descrição detalhada do evento']);
 $html = view('schedule/index', ['events' => [$rendered], 'subjects' => [], 'lastSync' => null, 'pager' => new class { public function links() { return ''; } }]);
 verifyService(str_contains($html, '&lt;b&gt;Reunião&lt;/b&gt;') && !str_contains($html, 'Test_Api_Key'), 'Escaped events and no key in view');
-verifyService(!str_contains($html, 'Descrição que não deve aparecer')
+verifyService(str_contains($html, 'Descrição detalhada do evento')
     && str_contains($html, (new DateTimeImmutable($rendered['starts_at'], new DateTimeZone('UTC')))
-        ->setTimezone(new DateTimeZone($rendered['timezone']))->format('d/m/Y')), 'Events grouped by day without description');
+        ->setTimezone(new DateTimeZone($rendered['timezone']))->format('d/m/Y')), 'Event description appears in details and events remain grouped by day');
 verifyService((bool) preg_match('/\d{2}\/\d{2}\/\d{4} \((Segunda|Terça|Quarta|Quinta|Sexta)-feira|Sábado|Domingo\)/u', $html), 'Weekday rendered in Portuguese');
 verifyService(str_contains($html, 'Sala &lt;A&gt;') && str_contains($html, 'Título da reunião'), 'Location and explicit title heading rendered');
-$linked = array_replace($before[0], ['location' => 'https://meet.example.test/room']);
+$linked = array_replace($before[0], ['location' => 'https://meet.example.test/room', 'description' => 'Detalhes em https://meet.example.test/info']);
 $linkedHtml = view('schedule/index', ['events' => [$linked], 'subjects' => [], 'lastSync' => null, 'pager' => new class { public function links() { return ''; } }]);
-verifyService(substr_count($linkedHtml, 'target="_blank"') === 2
-    && str_contains($linkedHtml, 'bi-link-45deg'), 'HTTP location links title and renders link icon');
+verifyService(substr_count($linkedHtml, 'target="_blank"') === 3
+    && str_contains($linkedHtml, 'bi-link-45deg')
+    && str_contains($linkedHtml, 'data-bs-target="#schedule-event-'), 'Event details open in a modal and URLs are external links');
 $missing = array_replace($before[0], ['title' => 'Sem título', 'location' => '']);
 $missingHtml = view('schedule/index', ['events' => [$missing], 'subjects' => [], 'lastSync' => null, 'pager' => new class { public function links() { return ''; } }]);
 verifyService(str_contains($missingHtml, 'Título não fornecido pelo Google') && !str_contains($missingHtml, 'Não informado pelo Google'), 'Missing location rendered empty');
