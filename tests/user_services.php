@@ -58,6 +58,8 @@ $html = view('tools/google_schedule', ['configuration' => $model->googleSummary(
 verifyService(str_contains($html, 'Google Agenda (googleSchedule)') && str_contains($html, 'Serviços cadastrados'), 'Registered services visible');
 verifyService(!str_contains($html, 'Replacement_Test_Key') && str_contains($html, 'type="password"'), 'No saved secret in HTML');
 verifyService(str_contains($html, 'OAuth 2.0') && str_contains($html, 'csrf'), 'Tutorial and CSRF');
+verifyService(str_contains($html, 'tools/googleSchedule/validate')
+    && str_contains($html, 'Revalidar credenciais'), 'Credential revalidation action visible');
 $db->table('user_services')->where('user_id', 'owner')->update(['value' => 'corrupted']);
 try {
     $model->googleSummary($actor);

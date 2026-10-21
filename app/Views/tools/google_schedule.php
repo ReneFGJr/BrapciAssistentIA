@@ -24,7 +24,15 @@
             </table>
         </div>
     </section>
-    <?php if (!empty($configuration['has_key'])): ?><a class="btn btn-info mb-3" href="<?= site_url('schedule') ?>">Abrir agenda</a><?php endif; ?>
+    <?php if (!empty($configuration['has_key'])): ?>
+        <div class="d-flex flex-wrap gap-2 mb-3">
+            <a class="btn btn-info" href="<?= site_url('schedule') ?>">Abrir agenda</a>
+            <form method="post" action="<?= site_url('tools/googleSchedule/validate') ?>">
+                <?= csrf_field() ?>
+                <button class="btn btn-outline-info" type="submit"><i class="bi bi-shield-check" aria-hidden="true"></i> Revalidar credenciais</button>
+            </form>
+        </div>
+    <?php endif; ?>
     <div class="row g-4">
         <div class="col-lg-5">
             <form method="post" action="<?= site_url('tools/googleSchedule') ?>" class="card bg-dark text-light border-secondary p-3">

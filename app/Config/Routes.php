@@ -74,6 +74,7 @@ $routes->post('email/edit/(:num)', 'Email::save/$1', ['filter' => ['auth', 'csrf
 $routes->post('email/delete/(:num)', 'Email::delete/$1', ['filter' => ['auth', 'csrf']]);
 $routes->get('tools/googleSchedule', 'GoogleSchedule::index', ['filter' => 'auth']);
 $routes->post('tools/googleSchedule', 'GoogleSchedule::save', ['filter' => ['auth', 'csrf']]);
+$routes->post('tools/googleSchedule/validate', 'GoogleSchedule::validateCredentials', ['filter' => ['auth', 'csrf']]);
 $routes->get('tools/subjects', 'Subjects::index', ['filter' => 'auth']);
 $routes->get('tools/subjects/add', 'Subjects::add', ['filter' => 'auth']);
 $routes->get('tools/subjects/(:num)/edit', 'Subjects::edit/$1', ['filter' => 'auth']);

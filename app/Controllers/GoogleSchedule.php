@@ -1,6 +1,8 @@
 <?php
 namespace App\Controllers;
 use App\Models\UserServiceModel;
+use App\Libraries\GoogleCalendarClient;
+use App\Libraries\GoogleCalendarException;
 use InvalidArgumentException;
 use Throwable;
 class GoogleSchedule extends BaseController
@@ -54,5 +56,31 @@ class GoogleSchedule extends BaseController
         // Do not put the API key in flash data or repopulate it in HTML.
         return redirect()->to('/tools/googleSchedule')->with('error', $error)
             ->with('google_schedule_email', is_string($email) ? mb_substr(trim($email), 0, 254) : '');
+    }
+
+    public function validateCredentials()
+    {
+        $this->response->setHeader('Cache-Control', 'private, no-store, max-age=0');
+        try {
+            $connection = (new UserServiceModel())->googleConnection((array) session('auth_user'));
+            if ($connection === null) {
+                return redirect()->to(site_url('tools/googleSchedule'))
+                    ->with('error', 'Salve o e-mail e a API key antes de revalidar as credenciais.');
+            }
+            // A real read-only request validates the API key and access to this calendar.
+            $events = (new GoogleCalendarClient())->fetch($connection);
+            return redirect()->to(site_url('tools/googleSchedule'))->with(
+                'success',
+                'Credenciais revalidadas no Google com sucesso. ' . count($events) . ' evento(s) acessível(is).'
+            );
+        } catch (Throwable $exception) {
+            log_message('notice', 'Falha ao revalidar Google Agenda: {type}', ['type' => $exception::class]);
+            return redirect()->to(site_url('tools/googleSchedule'))->with(
+                'error',
+                $exception instanceof GoogleCalendarException
+                    ? $exception->getMessage()
+                    : 'Não foi possível revalidar as credenciais do Google Agenda.'
+            );
+        }
     }
 }
