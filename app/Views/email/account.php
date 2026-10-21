@@ -18,7 +18,7 @@ $replyDraft = (array) session()->getFlashdata('email_reply_draft');
         <div class="d-flex gap-2">
             <a class="btn btn-outline-light" href="<?= site_url('email/config') ?>" title="Gerenciar contas" aria-label="Gerenciar contas"><i class="bi bi-gear" aria-hidden="true"></i></a>
             <form id="mail-sync-all" method="post" action="<?= site_url('email/account/sync') ?>">
-                <?= csrf_field() ?><button class="btn btn-primary" title="Atualizar todas as contas ativas" <?= $activeAccounts === [] ? 'disabled' : '' ?>><i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Atualizar</button>
+                <?= csrf_field() ?><input type="hidden" name="manual_sync" value="1"><button class="btn btn-primary" title="Atualizar todas as contas ativas" <?= $activeAccounts === [] ? 'disabled' : '' ?>><i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Atualizar</button>
             </form>
         </div>
     </header>
@@ -276,7 +276,7 @@ $replyDraft = (array) session()->getFlashdata('email_reply_draft');
         let total = 0;
         for (const item of activeAccounts) {
             notify('Consultando ' + item.email + '…');
-            try { const data = await post('/sync', {}, () => true, accountBase + '/' + item.id); total += data.count; }
+            try { const data = await post('/sync', {manual_sync: '1'}, () => true, accountBase + '/' + item.id); total += data.count; }
             catch (error) { failures.push(item.email + ': ' + error.message); }
         }
         if (failures.length === 0) window.location.reload();

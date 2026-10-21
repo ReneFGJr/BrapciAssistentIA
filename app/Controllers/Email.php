@@ -123,8 +123,18 @@ class Email extends BaseController
         return redirect()->to(site_url('email/account'));
     }
 
+    private function manualSyncRequested(): bool
+    {
+        return $this->request->getMethod() === 'POST'
+            && hash_equals('1', (string) $this->request->getPost('manual_sync'));
+    }
+
     public function syncAll()
     {
+        if (!$this->manualSyncRequested()) {
+            return redirect()->to(site_url('email/account'))
+                ->with('error', 'A caixa de e-mail somente é consultada ao clicar em Atualizar.');
+        }
         $actor = (array) session('auth_user');
         $accounts = (new EmailUserModel())->forUser($actor);
         $count = 0;
@@ -146,6 +156,10 @@ class Email extends BaseController
 
     public function sync(int $id)
     {
+        if (!$this->manualSyncRequested()) {
+            return redirect()->to(site_url('email/account'))
+                ->with('error', 'A caixa de e-mail somente é consultada ao clicar em Atualizar.');
+        }
         if ($id === 0) return $this->syncAll();
         $stage = 'ambiente PHP';
         try {
