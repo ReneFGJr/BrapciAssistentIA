@@ -18,4 +18,5 @@ foreach ($unified as $entry) {
 }
 verifyService(!str_contains($html, 'foreign@example.test'), 'Foreign account not rendered');
 verifyService(str_contains($html, 'first@example.test') && str_contains($html, 'second-unified@example.test'), 'Source accounts identified');
+verifyService(str_contains($html, "sandbox', 'allow-scripts allow-same-origin allow-downloads'"), 'PDF preview permits the browser PDF viewer to run');
 echo "Unified inbox: ownership, chronological order and account-specific actions passed.\n";

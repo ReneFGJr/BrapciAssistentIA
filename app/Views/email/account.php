@@ -169,7 +169,11 @@ $replyDraft = (array) session()->getFlashdata('email_reply_draft');
                 if (request.signal.aborted) return;
                 previewObjectUrl = URL.createObjectURL(blob);
                 const element = document.createElement(type.startsWith('image/') ? 'img' : 'iframe');
-                if (element.tagName === 'IFRAME') { element.title = file.name; element.setAttribute('sandbox', 'allow-same-origin allow-downloads'); }
+                if (element.tagName === 'IFRAME') {
+                    element.title = file.name;
+                    // Chromium's built-in PDF viewer needs scripts inside its isolated frame.
+                    element.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-downloads');
+                }
                 else element.alt = file.name;
                 element.src = previewObjectUrl; previewContent.replaceChildren(element);
             } else throw new Error('Prévia indisponível para este formato. Use o download.');
