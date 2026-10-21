@@ -71,8 +71,17 @@ verifyService($last[2]['headers']['Authorization'] === 'Bearer renewed-test' && 
 verifyService(str_ends_with($last[1], '/primary/events') && $events[0]['title'] === 'Planejamento' && $events[0]['location'] === 'Sala A' && $events[0]['description'] === '<b>Detalhes</b>', 'Private event details read');
 $http->code = 400;
 $http->body = ['error' => 'invalid_grant', 'error_description' => 'secret must never leak'];
-try { $oauth->tokens([]); throw new LogicException('Failed token request accepted'); }
-catch (GoogleCalendarException $e) { verifyService(!str_contains($e->getMessage(), 'secret must never leak'), 'Sanitized OAuth errors'); }
+try { $oauth->tokens(['grant_type' => 'authorization_code']); throw new LogicException('Failed token request accepted'); }
+catch (GoogleCalendarException $e) {
+    verifyService(str_contains($e->getMessage(), 'código de autorização')
+        && !str_contains($e->getMessage(), 'secret must never leak'), 'Authorization-code error is actionable and sanitized');
+}
+$http->body = ['error' => 'invalid_client'];
+try { $oauth->tokens(['grant_type' => 'authorization_code']); throw new LogicException('Invalid client accepted'); }
+catch (GoogleCalendarException $e) { verifyService(str_contains($e->getMessage(), 'Client Secret'), 'Invalid OAuth client identified'); }
+$http->body = ['error' => 'invalid_grant'];
+try { $oauth->tokens(['grant_type' => 'refresh_token']); throw new LogicException('Revoked refresh accepted'); }
+catch (GoogleCalendarException $e) { verifyService(str_contains($e->getMessage(), 'revogada'), 'Revoked authorization identified'); }
 $html = view('tools/user_google_schedule', ['configuration' => $private->summary($actor), 'redirectUri' => $pending['redirect_uri'], 'validRedirect' => true]);
 verifyService(!str_contains($html, 'test-secret') && !str_contains($html, 'refresh-test') && str_contains($html, 'Conectar com Google'), 'View excludes secrets');
 verifyService(str_contains($html, site_url('schedule')) && !str_contains($html, site_url('userSchedule')), 'Private calendar button redirects without private API collection');

@@ -50,17 +50,37 @@ class GoogleCalendarOAuth
                 'form_params' => $data, 'connect_timeout' => 5, 'timeout' => 15,
                 'http_errors' => false, 'allow_redirects' => false,
             ]);
-            $body = json_decode($response->getBody(), true, 512, JSON_THROW_ON_ERROR);
-            if ($response->getStatusCode() !== 200 || !is_array($body) || empty($body['access_token'])) {
-                throw new \RuntimeException();
-            }
-            if (isset($body['scope']) && !in_array(self::SCOPE, explode(' ', $body['scope']), true)) {
-                throw new \RuntimeException();
-            }
-            return $body;
         } catch (\Throwable $exception) {
-            throw new GoogleCalendarException('Não foi possível autorizar a agenda particular. Confira as credenciais e conecte novamente ao Google.');
+            log_message('warning', 'Google OAuth token transport failure: {type}', ['type' => $exception::class]);
+            throw new GoogleCalendarException('O servidor não conseguiu acessar o Google OAuth. Verifique a conexão de saída HTTPS e os certificados SSL do servidor.');
         }
+        $body = json_decode($response->getBody(), true);
+        if ($response->getStatusCode() !== 200) {
+            $error = is_array($body) && is_string($body['error'] ?? null) ? $body['error'] : 'invalid_response';
+            $grant = is_string($data['grant_type'] ?? null) ? $data['grant_type'] : '';
+            log_message('notice', 'Google OAuth token rejected: status={status} error={error} grant={grant}', [
+                'status' => $response->getStatusCode(), 'error' => $error, 'grant' => $grant,
+            ]);
+            if ($error === 'invalid_client') {
+                throw new GoogleCalendarException('O Google recusou o Client ID ou o Client Secret. Confira as credenciais OAuth do tipo Aplicativo da Web.');
+            }
+            if ($error === 'redirect_uri_mismatch') {
+                throw new GoogleCalendarException('A URL de retorno não coincide com a cadastrada no Google Cloud. Copie exatamente o URI exibido na configuração da agenda.');
+            }
+            if ($error === 'invalid_grant') {
+                throw new GoogleCalendarException($grant === 'refresh_token'
+                    ? 'A autorização do Google expirou ou foi revogada. Use Conectar com Google novamente.'
+                    : 'O código de autorização expirou ou a URL de retorno diverge da configuração do Google Cloud. Inicie a conexão novamente.');
+            }
+            throw new GoogleCalendarException('O Google recusou a autorização OAuth (' . $error . '). Revise a configuração e tente novamente.');
+        }
+        if (!is_array($body) || !is_string($body['access_token'] ?? null) || $body['access_token'] === '') {
+            throw new GoogleCalendarException('O Google retornou uma resposta de autorização inválida. Tente conectar novamente.');
+        }
+        if (isset($body['scope']) && !in_array(self::SCOPE, explode(' ', $body['scope']), true)) {
+            throw new GoogleCalendarException('A permissão de leitura do Google Agenda não foi concedida. Conecte novamente e aceite essa permissão.');
+        }
+        return $body;
     }
 
     public function access(array $actor): ?array
