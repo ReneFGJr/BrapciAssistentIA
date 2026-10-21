@@ -57,6 +57,7 @@ verifyService($calendar->upcoming($connection)->findAll() === $before, 'Failed s
 $rendered = array_replace($before[0], ['description' => 'Descrição detalhada do evento']);
 $html = view('schedule/index', ['events' => [$rendered], 'subjects' => [], 'lastSync' => null, 'pager' => new class { public function links() { return ''; } }]);
 verifyService(str_contains($html, '&lt;b&gt;Reunião&lt;/b&gt;') && !str_contains($html, 'Test_Api_Key'), 'Escaped events and no key in view');
+verifyService(str_contains($html, 'schedule/sync') && str_contains($html, 'Consultando o Google'), 'Update action explicitly starts Google synchronization');
 verifyService(str_contains($html, 'Descrição detalhada do evento')
     && str_contains($html, (new DateTimeImmutable($rendered['starts_at'], new DateTimeZone('UTC')))
         ->setTimezone(new DateTimeZone($rendered['timezone']))->format('d/m/Y')), 'Event description appears in details and events remain grouped by day');

@@ -4,10 +4,17 @@
         <h1 class="h3"><?= ($schedulePath ?? 'schedule') === 'userSchedule' ? 'Agenda particular — próximas reuniões' : 'Agenda — próximas reuniões' ?></h1>
         <div class="d-flex gap-2">
             <a class="btn btn-outline-light" href="<?= site_url($configurationPath ?? 'tools/googleSchedule') ?>">Configurar</a>
-            <form method="post" action="<?= site_url(($schedulePath ?? 'schedule') . '/sync') ?>"><?= csrf_field() ?><button class="btn btn-info" type="submit">Atualizar agenda</button></form>
+            <form id="schedule-sync-form" method="post" action="<?= site_url(($schedulePath ?? 'schedule') . '/sync') ?>"><?= csrf_field() ?><button id="schedule-sync-button" class="btn btn-info" type="submit">Atualizar agenda</button></form>
         </div>
     </div>
     <p>Eventos dos próximos 90 dias. Horários exibidos no fuso de cada agenda.</p>
+    <script>
+    document.getElementById('schedule-sync-form')?.addEventListener('submit', () => {
+        const button = document.getElementById('schedule-sync-button');
+        button.disabled = true;
+        button.textContent = 'Consultando o Google…';
+    });
+    </script>
     <?php if ($lastSync): ?><p class="small">Última consulta: <?= esc($lastSync) ?> UTC</p><?php endif; ?>
     <?php $renderDescription = static function (string $description): string {
         $parts = preg_split('~(https?://[^\s<>"\']+)~iu', $description, -1, PREG_SPLIT_DELIM_CAPTURE);

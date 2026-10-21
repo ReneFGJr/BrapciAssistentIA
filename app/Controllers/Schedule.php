@@ -30,6 +30,8 @@ class Schedule extends BaseController
     }
     public function index()
     {
+        // Always render the snapshot written by the latest Google synchronization.
+        $this->response->setHeader('Cache-Control', 'private, no-store, max-age=0');
         if ($this->readStoredForUser) {
             $actor = (array) session('auth_user');
             $userId = (string) ($actor['id'] ?? '');
@@ -76,20 +78,27 @@ class Schedule extends BaseController
     }
     public function sync()
     {
+        $this->response->setHeader('Cache-Control', 'private, no-store, max-age=0');
         try {
             $services = $this->syncConnections();
             if ($services === []) return redirect()->to(site_url($this->configurationPath))->with('error', 'Cadastre e autorize um serviço Google Agenda.');
             $snapshots = [];
+            $eventCount = 0;
             $client = new GoogleCalendarClient();
             foreach ($services as $service) {
                 session()->set('schedule_attempt_' . $service['id'] . '_' . sha1($service['email']), time());
-                $snapshots[] = [$service, $client->fetch($service)];
+                $events = $client->fetch($service);
+                $eventCount += count($events);
+                $snapshots[] = [$service, $events];
             }
             $model = new GoogleScheduleModel();
             foreach ($snapshots as [$service, $events]) {
                 $model->replaceSnapshot($service, $events);
             }
-            return redirect()->to(site_url($this->schedulePath))->with('success', 'Agenda atualizada.');
+            return redirect()->to(site_url($this->schedulePath))->with(
+                'success',
+                'Agenda sincronizada com o Google: ' . $eventCount . ' evento(s) recebido(s).'
+            );
         } catch (Throwable $exception) {
             return redirect()->to(site_url($this->schedulePath))->with('error', $exception instanceof \App\Libraries\GoogleCalendarException
                 ? $exception->getMessage() : 'Não foi possível atualizar a agenda.');
