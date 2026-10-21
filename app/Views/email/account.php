@@ -171,8 +171,9 @@ $replyDraft = (array) session()->getFlashdata('email_reply_draft');
                 const element = document.createElement(type.startsWith('image/') ? 'img' : 'iframe');
                 if (element.tagName === 'IFRAME') {
                     element.title = file.name;
-                    // Chromium's built-in PDF viewer needs scripts inside its isolated frame.
-                    element.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-downloads');
+                    // Chromium blocks its built-in PDF viewer inside sandboxed frames.
+                    // The source is a local object URL created from a server-validated PDF.
+                    element.referrerPolicy = 'no-referrer';
                 }
                 else element.alt = file.name;
                 element.src = previewObjectUrl; previewContent.replaceChildren(element);

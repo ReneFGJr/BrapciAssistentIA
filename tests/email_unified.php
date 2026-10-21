@@ -18,5 +18,6 @@ foreach ($unified as $entry) {
 }
 verifyService(!str_contains($html, 'foreign@example.test'), 'Foreign account not rendered');
 verifyService(str_contains($html, 'first@example.test') && str_contains($html, 'second-unified@example.test'), 'Source accounts identified');
-verifyService(str_contains($html, "sandbox', 'allow-scripts allow-same-origin allow-downloads'"), 'PDF preview permits the browser PDF viewer to run');
+verifyService(!str_contains($html, "element.setAttribute('sandbox'"), 'PDF preview is not blocked by Chromium sandbox restrictions');
+verifyService(str_contains($html, "element.referrerPolicy = 'no-referrer'"), 'PDF preview does not send a referrer');
 echo "Unified inbox: ownership, chronological order and account-specific actions passed.\n";
