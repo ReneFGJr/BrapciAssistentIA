@@ -52,7 +52,9 @@ class Toolbar extends BaseConfig
      * If set to false var data from the views will not be collected. Useful to
      * avoid high memory usage when there are lots of data passed to the view.
      */
-    public bool $collectVarData = true;
+    // Mail views contain message bodies and the rendered inbox HTML. Dumping
+    // these variables duplicates large payloads before the toolbar JSON is built.
+    public bool $collectVarData = false;
 
     /**
      * --------------------------------------------------------------------------

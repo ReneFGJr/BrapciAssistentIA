@@ -1,0 +1,22 @@
+<?php
+ob_start();
+define('ENVIRONMENT', 'testing');
+define('FCPATH', dirname(__DIR__) . '/public/');
+require dirname(__DIR__) . '/app/Config/Paths.php';
+$paths = new Config\Paths();
+require $paths->systemDirectory . '/Boot.php';
+CodeIgniter\Boot::bootConsole($paths);
+Config\Services::injectMock('request', Config\Services::incomingrequest(null, false));
+set_exception_handler(static function (Throwable $error): void { fwrite(STDERR, $error . PHP_EOL); exit(1); });
+$config = config('Toolbar');
+if ($config->collectVarData !== false) throw new RuntimeException('Toolbar must not dump large view variables.');
+$marker = 'PRIVATE_MAIL_BODY_MEMORY_TEST';
+$body = str_repeat($marker, 850000);
+service('renderer')->setData(['messages' => [['email_context' => $body]], 'content' => $body]);
+$toolbar = new CodeIgniter\Debug\Toolbar($config);
+$json = $toolbar->run(microtime(true) - 0.1, 0.1, Config\Services::incomingrequest(), Config\Services::response());
+$data = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+if (str_contains($json, $marker)) throw new RuntimeException('Mail bodies leaked into toolbar payload.');
+if (strlen($json) > 2 * 1024 * 1024) throw new RuntimeException('Unexpectedly large toolbar payload.');
+if (empty($data['collectors'])) throw new RuntimeException('Performance collectors must remain available.');
+echo 'Toolbar memory: large view data excluded; performance collectors retained; peak ' . round(memory_get_peak_usage(true) / 1024 / 1024, 1) . " MB.\n";
