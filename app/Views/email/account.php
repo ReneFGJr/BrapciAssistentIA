@@ -1,10 +1,10 @@
 <?php
-$statuses = [0 => 'Não lido', 1 => 'Lido', 2 => 'Importante', 3 => 'Urgente'];
+$statuses = [0 => 'Não lido', 1 => 'Lido', 2 => 'Importante', 3 => 'Urgente', 4 => 'SPAM'];
 $savedFilter = session('email_inbox_filter') ?? session('email_filter_' . $account['id']) ?? 'all';
 $accounts = $accounts ?? [$account];
 $accountsById = array_column($accounts, null, 'id');
 $activeAccounts = array_values(array_filter($accounts, static fn($item) => (int) $item['status'] === 1));
-if (!in_array($savedFilter, ['all', '0', '2', '3'], true)) $savedFilter = 'all';
+if (!in_array($savedFilter, ['all', '0', '2', '3', '4'], true)) $savedFilter = 'all';
 $replyDraft = (array) session()->getFlashdata('email_reply_draft');
 ?>
 <style>
@@ -22,6 +22,12 @@ $replyDraft = (array) session()->getFlashdata('email_reply_draft');
             </form>
         </div>
     </header>
+    <details class="m-3">
+        <summary>Remetentes de SPAM (<?= count($spamSenders ?? []) ?>)</summary>
+        <p class="small mt-2">Esta lista vale para todas as suas contas. Novas mensagens destes endereços aparecem somente em SPAM.</p>
+        <?php if (empty($spamSenders)): ?><p>Nenhum remetente na lista. Use o botão SPAM ao ler uma mensagem.</p><?php endif; ?>
+        <ul><?php foreach ($spamSenders ?? [] as $sender): ?><li><?= esc($sender['sender']) ?></li><?php endforeach; ?></ul>
+    </details>
     <?php if ($activeAccounts === []): ?><div class="alert alert-warning m-3">Nenhuma conta ativa. Ative uma conta na configuração para consultar o servidor.</div><?php endif; ?>
     <div class="mail-layout">
         <div class="mail-list">
@@ -29,12 +35,12 @@ $replyDraft = (array) session()->getFlashdata('email_reply_draft');
                 <label for="mail-query" class="visually-hidden">Buscar em todos os e-mails</label>
                 <input id="mail-query" class="form-control" type="search" placeholder="Buscar em todos os e-mails">
                 <div class="mail-tabs" aria-label="Filtrar todos os e-mails">
-                    <?php foreach (['all' => 'Todas', '0' => 'Não lidas', '2' => 'Importantes', '3' => 'Urgentes'] as $filter => $label): ?><button type="button" class="btn btn-sm <?= $filter === 'all' ? 'btn-primary' : 'btn-outline-light' ?>" data-filter="<?= esc($filter, 'attr') ?>" aria-pressed="<?= $filter === 'all' ? 'true' : 'false' ?>"><?= esc($label) ?></button><?php endforeach; ?>
+                    <?php foreach (['all' => 'Todas', '0' => 'Não lidas', '2' => 'Importantes', '3' => 'Urgentes', '4' => 'SPAM'] as $filter => $label): ?><button type="button" class="btn btn-sm <?= $filter === $savedFilter ? 'btn-primary' : 'btn-outline-light' ?>" data-filter="<?= esc($filter, 'attr') ?>" aria-pressed="<?= $filter === $savedFilter ? 'true' : 'false' ?>"><?= esc($label) ?></button><?php endforeach; ?>
                 </div>
             </div>
             <div class="mail-rows">
             <?php foreach ($messages as $message): ?>
-                <button type="button" class="mail-row <?= (int) $message['email_status'] === 0 ? 'unread' : '' ?>" data-account="<?= (int) $message['email_user_id'] ?>" data-message="<?= (int) $message['id'] ?>" data-status="<?= (int) $message['email_status'] ?>" aria-controls="message-<?= (int) $message['id'] ?>" aria-pressed="false">
+                <button type="button" <?= ($savedFilter === 'all' ? (int) $message['email_status'] === 4 : (string) $message['email_status'] !== $savedFilter) ? 'hidden' : '' ?> class="mail-row <?= (int) $message['email_status'] === 0 ? 'unread' : '' ?>" data-account="<?= (int) $message['email_user_id'] ?>" data-message="<?= (int) $message['id'] ?>" data-status="<?= (int) $message['email_status'] ?>" aria-controls="message-<?= (int) $message['id'] ?>" aria-pressed="false">
                     <span class="mail-row-top"><span class="mail-from"><?= esc($message['email_from']) ?></span></span>
                     <span class="mail-subject">
                         <?php if (in_array((int) $message['email_status'], [2, 3], true)): ?>
@@ -64,7 +70,7 @@ $replyDraft = (array) session()->getFlashdata('email_reply_draft');
                     <?php foreach ([2 => ['Importante', 'warning'], 3 => ['Urgente', 'danger']] as $priority => [$priorityLabel, $priorityColor]): ?>
                         <form class="mail-priority-form" method="post" action="<?= site_url('email/account/' . $messageAccount['id'] . '/messages/' . $message['id'] . '/status') ?>">
                             <?= csrf_field() ?><input type="hidden" name="email_status" value="<?= $priority ?>">
-                            <button class="btn btn-sm btn-<?= (int) $message['email_status'] === $priority ? '' : 'outline-' ?><?= $priorityColor ?>" title="Marcar como <?= esc($priorityLabel, 'attr') ?>" aria-label="Marcar como <?= esc($priorityLabel, 'attr') ?>" aria-pressed="<?= (int) $message['email_status'] === $priority ? 'true' : 'false' ?>"><i class="bi <?= $priority === 3 ? 'bi-exclamation-triangle-fill' : 'bi-flag-fill' ?>" aria-hidden="true"></i></button>
+                            <button <?= (int) $message['email_status'] === 4 ? 'disabled' : '' ?> class="btn btn-sm btn-<?= (int) $message['email_status'] === $priority ? '' : 'outline-' ?><?= $priorityColor ?>" title="Marcar como <?= esc($priorityLabel, 'attr') ?>" aria-label="Marcar como <?= esc($priorityLabel, 'attr') ?>" aria-pressed="<?= (int) $message['email_status'] === $priority ? 'true' : 'false' ?>"><i class="bi <?= $priority === 3 ? 'bi-exclamation-triangle-fill' : 'bi-flag-fill' ?>" aria-hidden="true"></i></button>
                         </form>
                     <?php endforeach; ?>
                     <?php if ($messageAccount['protocol'] === 'imap'): ?>
@@ -72,6 +78,9 @@ $replyDraft = (array) session()->getFlashdata('email_reply_draft');
                         <?= csrf_field() ?><button class="btn btn-sm btn-outline-danger" title="Excluir do servidor IMAP e manter no banco" aria-label="Excluir do servidor IMAP e manter no banco" <?= ((int) $messageAccount['status'] !== 1 || !empty($message['server_deleted_at'])) ? 'disabled' : '' ?>><i class="bi bi-trash" aria-hidden="true"></i></button>
                     </form>
                     <?php endif; ?>
+                    <form method="post" action="<?= site_url('email/account/' . $messageAccount['id'] . '/messages/' . $message['id'] . '/spam') ?>">
+                        <?= csrf_field() ?><button class="btn btn-sm btn-outline-warning" title="Adicionar remetente à lista de SPAM" aria-label="Adicionar remetente à lista de SPAM" <?= (int) $message['email_status'] === 4 ? 'disabled' : '' ?>><i class="bi bi-shield-exclamation" aria-hidden="true"></i><span class="visually-hidden">SPAM</span></button>
+                    </form>
                     <form method="post" action="<?= site_url('email/account/' . $messageAccount['id'] . '/messages/' . $message['id'] . '/send') ?>" onsubmit="if (!confirm('Encaminhar esta mensagem, sem anexos, para o e-mail do seu perfil?')) return false; this.querySelector('button').disabled = true;">
                         <?= csrf_field() ?><input type="hidden" name="action" value="forward"><button class="btn btn-sm btn-outline-light" title="Encaminhar para meu e-mail" aria-label="Encaminhar para meu e-mail"><i class="bi bi-forward" aria-hidden="true"></i></button>
                     </form>
@@ -335,7 +344,11 @@ $replyDraft = (array) session()->getFlashdata('email_reply_draft');
     }));
     function apply(keepSelected = false) {
         const text = query.value.trim().toLocaleLowerCase('pt-BR');
-        rows.forEach(row => row.hidden = !(keepSelected && row === selected) && ((filter !== 'all' && row.dataset.status !== filter) || !row.textContent.toLocaleLowerCase('pt-BR').includes(text)));
+        rows.forEach(row => {
+            const matchesFolder = filter === 'all' ? row.dataset.status !== '4' : row.dataset.status === filter;
+            const keepReadMessage = keepSelected && row === selected && filter === '0' && row.dataset.status === '1';
+            row.hidden = !(matchesFolder || keepReadMessage) || !row.textContent.toLocaleLowerCase('pt-BR').includes(text);
+        });
         document.getElementById('mail-empty-list').hidden = rows.some(row => !row.hidden);
         if (selected?.hidden) close();
     }

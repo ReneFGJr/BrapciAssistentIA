@@ -1,5 +1,7 @@
 <?php
 require __DIR__ . '/user_services.php';
+require APPPATH . 'Database/Migrations/2026-10-23-000001_CreateEmailSpamSenders.php';
+(new App\Database\Migrations\CreateEmailSpamSenders(Config\Database::forge($db)))->up();
 set_exception_handler(static function (Throwable $e): void { fwrite(STDERR, $e->getMessage() . PHP_EOL . $e->getTraceAsString()); exit(1); });
 require APPPATH . 'Database/Migrations/2026-10-15-000001_CreateEmailUser.php';
 (new App\Database\Migrations\CreateEmailUser(Config\Database::forge($db)))->up();

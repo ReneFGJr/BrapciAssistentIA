@@ -67,6 +67,7 @@ $routes->post('email/account/(:num)/filter', 'Email::saveFilter/$1', ['filter' =
 $routes->post('email/account/(:num)/messages/(:num)/read', 'Email::markRead/$1/$2', ['filter' => ['auth', 'csrf']]);
 $routes->post('email/account/(:num)/sync', 'Email::sync/$1', ['filter' => ['auth', 'csrf']]);
 $routes->post('email/account/(:num)/messages/(:num)/status', 'Email::messageStatus/$1/$2', ['filter' => ['auth', 'csrf']]);
+$routes->post('email/account/(:num)/messages/(:num)/spam', 'Email::spam/$1/$2', ['filter' => ['auth', 'csrf']]);
 $routes->post('email/account/(:num)/messages/(:num)/delete', 'Email::messageDelete/$1/$2', ['filter' => ['auth', 'csrf']]);
 $routes->get('email/edit', 'Email::edit', ['filter' => 'auth']);
 $routes->get('email/edit/(:num)', 'Email::edit/$1', ['filter' => 'auth']);

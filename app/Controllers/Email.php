@@ -93,7 +93,7 @@ class Email extends BaseController
     {
         if ($id !== 0) (new EmailUserModel())->findOwned($id, (array) session('auth_user'));
         $filter = $this->request->getPost('filter');
-        if (!is_string($filter) || !in_array($filter, ['all', '0', '2', '3'], true)) {
+        if (!is_string($filter) || !in_array($filter, ['all', '0', '2', '3', '4'], true)) {
             return $this->response->setStatusCode(422)->setJSON(['csrf' => csrf_hash()]);
         }
         session()->set('email_inbox_filter', $filter);
@@ -115,7 +115,7 @@ class Email extends BaseController
             ? ['id' => 0, 'email_user' => '', 'status' => 0, 'protocol' => 'imap']
             : (new EmailUserModel())->findOwned($id, $actor);
         $messages = (new \App\Models\EmailUserRowModel())->unified($actor);
-        return view('main', ['content' => view('email/account', ['account' => $account, 'accounts' => $accounts, 'messages' => $messages])]);
+        return view('main', ['content' => view('email/account', ['account' => $account, 'accounts' => $accounts, 'messages' => $messages, 'spamSenders' => (new \App\Models\EmailSpamSenderModel())->forUser($actor)])]);
     }
 
     public function inboxRedirect()
@@ -228,6 +228,19 @@ class Email extends BaseController
             throw $e;
         } catch (Throwable $e) {
             return redirect()->to(site_url('email/account/' . $accountId))->with('error', 'Não foi possível alterar o status.');
+        }
+    }
+
+    public function spam(int $accountId, int $messageId)
+    {
+        try {
+            (new \App\Models\EmailSpamSenderModel())->blockMessage($accountId, $messageId, (array) session('auth_user'));
+            return redirect()->to(site_url('email/account/' . $accountId))->with('success', 'Remetente adicionado à lista de SPAM. As mensagens desse remetente aparecem somente em SPAM.');
+        } catch (PageNotFoundException $e) { throw $e;
+        } catch (InvalidArgumentException $e) {
+            return redirect()->to(site_url('email/account/' . $accountId))->with('error', $e->getMessage());
+        } catch (Throwable $e) {
+            return redirect()->to(site_url('email/account/' . $accountId))->with('error', 'Não foi possível adicionar o remetente à lista de SPAM.');
         }
     }
 

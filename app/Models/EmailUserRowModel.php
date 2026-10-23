@@ -62,6 +62,7 @@ class EmailUserRowModel extends Model
         if ($this->known($id, $message['remote_key'], $actor)) return false;
         // Only imported fields are accepted; ownership comes from the session.
         $data = array_intersect_key($message, array_flip(['remote_key', 'message_id', 'email_from', 'email_to', 'email_title', 'email_context', 'email_data', 'email_status', 'has_attachments', 'size_bytes']));
+        if ((new EmailSpamSenderModel($this->db))->blocked((string) ($data['email_from'] ?? ''), $actor)) $data['email_status'] = 4;
         $now = gmdate('Y-m-d H:i:s');
         if (!$this->insert($data + ['user_id' => (string) $actor['id'], 'email_user_id' => $id, 'folder' => 'INBOX', 'created' => $now, 'lastupdated' => $now])) throw new RuntimeException('Falha ao armazenar mensagem.');
         return true;
@@ -103,6 +104,7 @@ class EmailUserRowModel extends Model
         $row = $this->forAccount($accountId, $actor)->where('id', $id)->first();
         if ($row === null) throw PageNotFoundException::forPageNotFound();
         if (!in_array($status, ['0', '1', '2', '3'], true)) throw new InvalidArgumentException('Status inválido.');
+        if ((int) $row['email_status'] === 4) throw new InvalidArgumentException('Esta mensagem está classificada como SPAM.');
         if (!$this->where('user_id', (string) $actor['id'])->where('email_user_id', $accountId)->update($id, ['email_status' => (int) $status, 'lastupdated' => gmdate('Y-m-d H:i:s')])) throw new RuntimeException('Falha ao alterar status.');
     }
 }
