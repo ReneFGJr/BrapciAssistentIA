@@ -7,6 +7,30 @@ window.setOperationStatus = (message, status = 'info') => {
 };
 (() => {
     const initializeSystem = () => {
+        const sessionStatusUrl = document.body.dataset.sessionStatusUrl;
+        let checkingSession = false;
+        const checkSession = async () => {
+            if (!sessionStatusUrl || checkingSession) return;
+            checkingSession = true;
+            try {
+                const response = await fetch(sessionStatusUrl, {
+                    credentials: 'same-origin', cache: 'no-store',
+                    headers: { Accept: 'application/json' }
+                });
+                if (response.status === 401) window.location.replace(document.body.dataset.sessionHomeUrl);
+            } catch (_) {
+                // Retry on the next check when the connection is available.
+            } finally { checkingSession = false; }
+        };
+        if (sessionStatusUrl) {
+            checkSession();
+            window.setInterval(checkSession, 15000);
+            window.addEventListener('focus', checkSession);
+            window.addEventListener('pageshow', checkSession);
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') checkSession();
+            });
+        }
         const menuToggle = document.querySelector('.sidebar-toggle');
         const menu = document.getElementById('main-navigation');
         if (menuToggle && menu) {

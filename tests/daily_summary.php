@@ -36,4 +36,24 @@ foreach ([[], ['logged_in' => true], ['logged_in' => true, 'auth_user' => ['id' 
 }
 session()->set(['logged_in' => true, 'auth_user' => ['id' => 'owner']]);
 checkDaily($filter->before($request) === null, 'Authenticated session accepted');
+config('Session')->expiration = 60;
+session()->set('auth_last_activity', time() - 30);
+$lastActivity = session('auth_last_activity');
+checkDaily(\App\Libraries\AuthSession::valid(), 'Active session valid');
+checkDaily(session('auth_last_activity') === $lastActivity, 'Status check does not renew session');
+session()->set('auth_last_activity', time() - 61);
+$denied = $filter->before($request);
+checkDaily($denied instanceof CodeIgniter\HTTP\RedirectResponse, 'Expired session denied');
+checkDaily($denied->getHeaderLine('Location') === base_url('/'), 'Redirect uses application root');
+checkDaily(session('auth_user') === null, 'Expired authentication removed');
+session()->set(['logged_in' => true, 'auth_user' => ['id' => 'owner'], 'auth_last_activity' => time() - 61]);
+$guard = new \App\Filters\SessionExpiryFilter();
+checkDaily($guard->before($request) instanceof CodeIgniter\HTTP\RedirectResponse, 'Expired session redirects on other pages');
+session()->set(['logged_in' => true, 'auth_user' => ['id' => 'owner'], 'auth_last_activity' => time() - 20]);
+checkDaily($guard->before($request) === null && session('auth_last_activity') >= time() - 1, 'Normal request renews activity');
+$auth = new \App\Controllers\Auth();
+$auth->initController($request, Config\Services::response(), Config\Services::logger());
+checkDaily($auth->status()->getStatusCode() === 200, 'Status accepts active login');
+session()->remove(['logged_in', 'auth_user', 'auth_last_activity']);
+checkDaily($auth->status()->getStatusCode() === 401, 'Status reports missing session');
 echo "Daily summary: local date, ownership, cancelled events, escaping and authentication passed.\n";

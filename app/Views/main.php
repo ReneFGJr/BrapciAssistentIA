@@ -1,6 +1,6 @@
 <?= view('header/header');?>
 
-<body>
+<body<?php if (session('logged_in') === true): ?> data-session-status-url="<?= esc(site_url('auth/status'), 'attr') ?>" data-session-home-url="<?= esc(base_url('/'), 'attr') ?>"<?php endif; ?>>
 
     <div class="astra-shell">
 

@@ -10,6 +10,14 @@ use Throwable;
 
 class Auth extends BaseController
 {
+    public function status()
+    {
+        $valid = \App\Libraries\AuthSession::valid();
+        return $this->response->setStatusCode($valid ? 200 : 401)
+            ->setHeader('Cache-Control', 'private, no-store, max-age=0')
+            ->setJSON(['authenticated' => $valid]);
+    }
+
     public function signin()
     {
         $rules = [
@@ -32,7 +40,7 @@ class Auth extends BaseController
             (new UserLoginModel())->recordLogin($user['id']);
 
             session()->regenerate(true);
-            session()->set(['logged_in' => true, 'auth_user' => $user]);
+            session()->set(['logged_in' => true, 'auth_user' => $user, 'auth_last_activity' => time()]);
 
             return redirect()->to('/')->with('success', 'Login realizado com sucesso.');
         } catch (LegacyAuthException $exception) {

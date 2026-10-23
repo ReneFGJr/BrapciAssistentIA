@@ -30,6 +30,7 @@ class Filters extends BaseFilters
     public array $aliases = [
         'csrf'          => CSRF::class,
         'auth'          => AuthFilter::class,
+        'sessionExpiry' => \App\Filters\SessionExpiryFilter::class,
         'admin'         => AdminFilter::class,
         'toolbar'       => DebugToolbar::class,
         'honeypot'      => Honeypot::class,
@@ -77,7 +78,7 @@ class Filters extends BaseFilters
      */
     public array $globals = [
         'before' => [
-            // 'honeypot',
+            'sessionExpiry' => ['except' => ['auth/status']],
             // 'csrf',
             // 'invalidchars',
         ],
