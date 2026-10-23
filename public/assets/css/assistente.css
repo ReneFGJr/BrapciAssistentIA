@@ -262,3 +262,15 @@
 @media (min-width: 1200px) {
     .person-page.person-details .h3 { font-size: 1.75rem; }
 }
+
+.sidebar-toggle{display:none}
+.sidebar-label{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+@media(max-width:1199px){
+ .sidebar-toggle{display:inline-flex;align-items:center;gap:6px;min-height:44px}
+ .astra-shell{position:relative}
+ .astra-sidebar.is-open{display:flex;position:fixed;z-index:1050;top:82px;left:12px;width:min(320px,calc(100vw - 24px));max-height:calc(100dvh - 100px);overflow-y:auto;overscroll-behavior:contain;padding:12px;align-items:stretch;background:#04101c;border:1px solid #469cff;border-radius:12px;box-shadow:0 10px 30px #0009}
+ .astra-sidebar .sidebar-button{width:100%;min-height:48px;height:auto;flex-shrink:0;justify-content:flex-start;gap:12px;padding:10px;font-size:18px}
+ .astra-sidebar .sidebar-label{position:static;width:auto;height:auto;margin:0;overflow:visible;clip-path:none;white-space:normal;font-size:14px}
+ .astra-footer{position:static;margin-top:16px;flex-wrap:wrap;gap:8px}
+ .astra-main{padding-bottom:0}
+}

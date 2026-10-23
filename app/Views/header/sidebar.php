@@ -33,9 +33,9 @@ if ($canAdminister) {
     $menu[] = ['name' => 'Administrar aplicativos', 'url' => base_url('dashboard/admin'), 'class' => 'bi-shield-lock-fill'];
 }
 ?>
-<aside class="astra-sidebar">
+<nav class="astra-sidebar" id="main-navigation" aria-label="Menu principal">
 <?php if (session('logged_in') === true): ?>
-<?php foreach ($menu as $item): ?><a href="<?= esc($item['url'], 'attr') ?>" class="sidebar-button" title="<?= esc($item['name'], 'attr') ?>"><i class="bi <?= esc($item['class'], 'attr') ?>"></i></a><?php endforeach; ?>
+<?php foreach ($menu as $item): ?><a href="<?= esc($item['url'], 'attr') ?>" class="sidebar-button" title="<?= esc($item['name'], 'attr') ?>"><i class="bi <?= esc($item['class'], 'attr') ?>" aria-hidden="true"></i><span class="sidebar-label"><?= esc($item['name']) ?></span></a><?php endforeach; ?>
 <div class="sidebar-spacer"></div><a href="<?= base_url() ?>" class="sidebar-button" title="Ajuda"><i class="bi bi-question-circle"></i></a>
 <?php endif; ?>
-</aside>
+</nav>

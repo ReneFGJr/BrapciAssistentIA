@@ -7,6 +7,29 @@ window.setOperationStatus = (message, status = 'info') => {
 };
 (() => {
     const initializeSystem = () => {
+        const menuToggle = document.querySelector('.sidebar-toggle');
+        const menu = document.getElementById('main-navigation');
+        if (menuToggle && menu) {
+            const closeMenu = () => {
+                menu.classList.remove('is-open');
+                menuToggle.setAttribute('aria-expanded', 'false');
+            };
+            menuToggle.addEventListener('click', () => {
+                const open = menu.classList.toggle('is-open');
+                menuToggle.setAttribute('aria-expanded', String(open));
+            });
+            document.addEventListener('keydown', event => {
+                if (event.key === 'Escape' && menu.classList.contains('is-open')) {
+                    closeMenu();
+                    menuToggle.focus();
+                }
+            });
+            document.addEventListener('click', event => {
+                if (!menu.contains(event.target) && !menuToggle.contains(event.target)) closeMenu();
+            });
+            menu.addEventListener('click', event => { if (event.target.closest('a')) closeMenu(); });
+            window.matchMedia('(max-width: 1199px)').addEventListener('change', closeMenu);
+        }
         const footerMessage = document.getElementById('footer-message');
         const sources = [...document.querySelectorAll('[data-footer-message]')].filter(element => element.dataset.footerMessage?.trim());
         const source = sources.find(element => element.dataset.footerStatus === 'error') || sources[0];
