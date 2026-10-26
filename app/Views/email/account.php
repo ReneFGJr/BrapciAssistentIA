@@ -71,12 +71,12 @@ foreach ($meetings ?? [] as $meeting) $meetingsByMessage[$meeting['message_id']]
                     <?php endif; ?>
                 </button>
             <?php endforeach; ?>
-                <p id="mail-empty-list" class="p-4 text-center" <?= $messages !== [] ? 'hidden' : '' ?>><?= $messages === [] ? 'Nenhuma mensagem salva. Clique em Atualizar para consultar o servidor.' : 'Nenhuma mensagem encontrada.' ?></p>
+                <p id="mail-empty-list" class="p-4 text-center" <?= $messages !== [] ? 'hidden' : '' ?>><?= !empty($inboxAwaitingUpdate) ? 'Clique em Atualizar para carregar a caixa de entrada.' : ($messages === [] ? 'Nenhuma mensagem encontrada. Clique em Atualizar para consultar o servidor.' : 'Nenhuma mensagem encontrada.') ?></p>
             </div>
             <div class="mail-page-nav small text-light" id="mail-message-count"><?= count($messages) ?> mensagem(ns)</div>
         </div>
         <div class="mail-reader" aria-label="Leitura da mensagem">
-            <div id="mail-placeholder" class="mail-placeholder"><i class="bi bi-envelope-open" aria-hidden="true"></i><h2 class="h5">Selecione uma mensagem</h2><p>O conteúdo do e-mail aparecerá aqui.</p></div>
+            <div id="mail-placeholder" class="mail-placeholder"><i class="bi bi-envelope-open" aria-hidden="true"></i><h2 class="h5"><?= !empty($inboxAwaitingUpdate) ? 'Caixa de entrada aguardando atualização' : 'Selecione uma mensagem' ?></h2><p><?= !empty($inboxAwaitingUpdate) ? 'Clique em Atualizar para consultar e carregar os e-mails.' : 'O conteúdo do e-mail aparecerá aqui.' ?></p></div>
             <?php foreach ($messages as $message): ?>
                 <?php $messageAccount = $accountsById[$message['email_user_id']] ?? $account; ?>
                 <article class="mail-message" id="message-<?= (int) $message['id'] ?>" hidden>
@@ -202,7 +202,11 @@ foreach ($meetings ?? [] as $meeting) $meetingsByMessage[$meeting['message_id']]
     function reloadWithResult(message, status, originalId = null) {
         try { sessionStorage.setItem('email-operation-result', JSON.stringify({message, status, originalId})); }
         catch (_) { setBusy(); notify(message, status); return; }
-        window.location.reload();
+        if (originalId) {
+            const destination = new URL(window.location.href);
+            destination.searchParams.set('message', originalId);
+            window.location.assign(destination.href);
+        } else window.location.reload();
     }
     const rows = [...shell.querySelectorAll('.mail-row')];
     const panels = [...shell.querySelectorAll('.mail-message')];

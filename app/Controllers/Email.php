@@ -91,7 +91,7 @@ class Email extends BaseController
             return $this->response->download($file['name'], $file['content'])->setContentType('application/octet-stream')->setHeader('Cache-Control', 'private, no-store')->setHeader('X-Content-Type-Options', 'nosniff');
         } catch (PageNotFoundException $e) { throw $e;
         } catch (Throwable $e) {
-            return redirect()->to(site_url('email/account/' . $accountId))->with('error', 'Não foi possível baixar o anexo. Confira a conexão e se a mensagem ainda está no servidor. Limite por anexo: 20 MB.');
+            return redirect()->to(site_url('email/account/' . $accountId) . '?message=' . $messageId)->with('error', 'Não foi possível baixar o anexo. Confira a conexão e se a mensagem ainda está no servidor. Limite por anexo: 20 MB.');
         }
     }
 
@@ -115,7 +115,7 @@ class Email extends BaseController
             $sentConfirmed = true;
             $sent->confirmSent($sentId, $actor);
             if ($this->request->isAJAX()) return $this->response->setHeader('Cache-Control', 'no-store')->setJSON(['message' => 'Envio aceito pelo servidor SMTP para ' . $mail['to'] . (!empty($mail['cc']) ? ' (Cc: ' . $mail['cc'] . ')' : '') . '. Consulte E-mails enviados para ver o conteúdo.', 'sent' => true, 'csrf' => csrf_hash()]);
-            return redirect()->to(site_url('email/account/' . $accountId))->with('email_sent_original_id', $messageId)->with('success', 'E-mail enviado com sucesso pela conta ' . $account['email_user'] . '.');
+            return redirect()->to(site_url('email/account/' . $accountId) . '?message=' . $messageId)->with('email_sent_original_id', $messageId)->with('success', 'E-mail enviado com sucesso pela conta ' . $account['email_user'] . '.');
         } catch (PageNotFoundException $e) {
             throw $e;
         } catch (InvalidArgumentException $e) {
@@ -126,9 +126,9 @@ class Email extends BaseController
             if (!empty($account['smtp_host'])) $error .= ' Servidor SMTP utilizado: ' . $account['smtp_host'] . ':' . ($account['smtp_port'] ?? 587) . '.';
         }
         if ($this->request->isAJAX()) return $this->response->setStatusCode($sentConfirmed ? 200 : 502)->setHeader('Cache-Control', 'no-store')->setJSON(['error' => $sentConfirmed ? 'O servidor confirmou o envio, mas houve falha ao atualizar o histórico. Não reenvie esta resposta.' : $error, 'sent' => $sentConfirmed, 'csrf' => csrf_hash()]);
-        if ($sentConfirmed) return redirect()->to(site_url('email/account/' . $accountId))->with('error', 'O servidor confirmou o envio, mas houve falha ao atualizar o histórico. Não reenvie esta resposta.');
+        if ($sentConfirmed) return redirect()->to(site_url('email/account/' . $accountId) . '?message=' . $messageId)->with('error', 'O servidor confirmou o envio, mas houve falha ao atualizar o histórico. Não reenvie esta resposta.');
         $draft = $this->request->getPost('reply');
-        return redirect()->to(site_url('email/account/' . $accountId))->with('error', $error)
+        return redirect()->to(site_url('email/account/' . $accountId) . '?message=' . $messageId)->with('error', $error)
             ->with('email_reply_draft', ['id' => $messageId, 'action' => $this->request->getPost('action') === 'reply_all' ? 'reply_all' : 'reply', 'text' => is_string($draft) ? mb_substr($draft, 0, 50000) : '']);
     }
 
@@ -157,15 +157,28 @@ class Email extends BaseController
         $account = $id === 0
             ? ['id' => 0, 'email_user' => '', 'status' => 0, 'protocol' => 'imap']
             : (new EmailUserModel())->findOwned($id, $actor);
-        $messages = (new \App\Models\EmailUserRowModel())->unified($actor);
-        $sentMessages = (new \App\Models\EmailSentModel())->forUser($actor);
+        $requestedMessage = $this->request->getGet('message');
+        $openMessage = is_string($requestedMessage) && ctype_digit($requestedMessage) && (int) $requestedMessage > 0;
+        $loadInbox = session()->get('email_inbox_load_requested') === true;
+        session()->remove('email_inbox_load_requested');
+        $messages = [];
+        if ($loadInbox) {
+            $messages = (new \App\Models\EmailUserRowModel())->unified($actor);
+        } elseif ($openMessage) {
+            // A direct message link loads only that saved message, never the whole inbox.
+            $message = (new \App\Models\EmailUserRowModel())->forUser($actor)->where('id', (int) $requestedMessage)->first();
+            if ($message === null) throw PageNotFoundException::forPageNotFound();
+            $messages = [$message];
+        }
+        $sentMessages = $messages === [] ? [] : (new \App\Models\EmailSentModel())->forUser($actor);
         $calendarActive = false;
         try {
             $privateCalendar = (new \App\Models\PrivateGoogleServiceModel())->summary($actor);
             $calendarActive = !empty($privateCalendar['connected']) || (new \App\Models\UserServiceModel())->googleSummary($actor) !== null;
         } catch (Throwable $e) { /* Email remains available if calendar credentials need repair. */ }
         return view('main', ['content' => view('email/account', ['account' => $account, 'accounts' => $accounts, 'messages' => $messages, 'sentMessages' => $sentMessages,
-            'calendarActive' => $calendarActive, 'meetings' => (new \App\Models\EmailMeetingModel())->forUser($actor),
+            'calendarActive' => $calendarActive, 'inboxAwaitingUpdate' => !$loadInbox && !$openMessage,
+            'meetings' => $messages === [] ? [] : (new \App\Models\EmailMeetingModel())->forUser($actor),
             'spamSenders' => (new \App\Models\EmailSpamSenderModel())->forUser($actor)])]);
     }
 
@@ -193,6 +206,7 @@ class Email extends BaseController
                 ->with('error', 'A caixa de e-mail somente é consultada ao clicar em Atualizar.');
         }
         $actor = (array) session('auth_user');
+        session()->set('email_inbox_load_requested', true);
         $accounts = (new EmailUserModel())->forUser($actor);
         $count = 0;
         $failed = 0;
@@ -218,6 +232,7 @@ class Email extends BaseController
                 ->with('error', 'A caixa de e-mail somente é consultada ao clicar em Atualizar.');
         }
         if ($id === 0) return $this->syncAll();
+        session()->set('email_inbox_load_requested', true);
         $stage = 'ambiente PHP';
         try {
             if (!function_exists('imap_open')) throw new \App\Exceptions\EmailInboxException('A extensão IMAP não está disponível no PHP que atende o site em produção. Habilite-a nesse PHP e reinicie o serviço web/PHP.');
@@ -261,7 +276,7 @@ class Email extends BaseController
             $deletedFromServer = (new \App\Libraries\EmailMessageDeletion())->delete($account, $message);
             $model->markServerDeleted($accountId, $messageId, $actor);
             if ($this->request->isAJAX()) return $this->response->setJSON(['message' => 'Mensagem removida da caixa de entrada. Cópia preservada no banco.', 'csrf' => csrf_hash()]);
-            return redirect()->to(site_url('email/account/' . $accountId))->with('success', $deletedFromServer
+            return redirect()->to(site_url('email/account/' . $accountId) . '?message=' . $messageId)->with('success', $deletedFromServer
                 ? 'Mensagem excluída do servidor IMAP. Cópia preservada no banco.'
                 : 'A mensagem já não estava na caixa de entrada do servidor. Cópia preservada no banco.');
         } catch (PageNotFoundException $e) {
@@ -272,7 +287,7 @@ class Email extends BaseController
             $error = 'Não foi possível concluir a exclusão. A cópia local foi mantida.';
         }
         if ($this->request->isAJAX()) return $this->response->setStatusCode(502)->setJSON(['error' => $error, 'csrf' => csrf_hash()]);
-        return redirect()->to(site_url('email/account/' . $accountId))->with('error', $error);
+        return redirect()->to(site_url('email/account/' . $accountId) . '?message=' . $messageId)->with('error', $error);
     }
 
     public function messageStatus(int $accountId, int $messageId)
@@ -280,11 +295,11 @@ class Email extends BaseController
         try {
             $status = $this->request->getPost('email_status');
             (new \App\Models\EmailUserRowModel())->changeStatus($accountId, $messageId, is_string($status) ? $status : '', (array) session('auth_user'));
-            return redirect()->to(site_url('email/account/' . $accountId))->with('success', 'Status atualizado.');
+            return redirect()->to(site_url('email/account/' . $accountId) . '?message=' . $messageId)->with('success', 'Status atualizado.');
         } catch (PageNotFoundException $e) {
             throw $e;
         } catch (Throwable $e) {
-            return redirect()->to(site_url('email/account/' . $accountId))->with('error', 'Não foi possível alterar o status.');
+            return redirect()->to(site_url('email/account/' . $accountId) . '?message=' . $messageId)->with('error', 'Não foi possível alterar o status.');
         }
     }
 
@@ -292,12 +307,12 @@ class Email extends BaseController
     {
         try {
             (new \App\Models\EmailSpamSenderModel())->blockMessage($accountId, $messageId, (array) session('auth_user'));
-            return redirect()->to(site_url('email/account/' . $accountId))->with('success', 'Remetente adicionado à lista de SPAM. As mensagens desse remetente aparecem somente em SPAM.');
+            return redirect()->to(site_url('email/account/' . $accountId) . '?message=' . $messageId)->with('success', 'Remetente adicionado à lista de SPAM. As mensagens desse remetente aparecem somente em SPAM.');
         } catch (PageNotFoundException $e) { throw $e;
         } catch (InvalidArgumentException $e) {
-            return redirect()->to(site_url('email/account/' . $accountId))->with('error', $e->getMessage());
+            return redirect()->to(site_url('email/account/' . $accountId) . '?message=' . $messageId)->with('error', $e->getMessage());
         } catch (Throwable $e) {
-            return redirect()->to(site_url('email/account/' . $accountId))->with('error', 'Não foi possível adicionar o remetente à lista de SPAM.');
+            return redirect()->to(site_url('email/account/' . $accountId) . '?message=' . $messageId)->with('error', 'Não foi possível adicionar o remetente à lista de SPAM.');
         }
     }
 
