@@ -69,24 +69,39 @@ class Email extends BaseController
 
     public function sendMessage(int $accountId, int $messageId)
     {
+        $sentConfirmed = false;
         try {
             $actor = (array) session('auth_user');
             $message = (new \App\Models\EmailUserRowModel())->findOwned($accountId, $messageId, $actor);
             $action = $this->request->getPost('action');
             $reply = $this->request->getPost('reply');
             $account = (new EmailUserModel())->connection($accountId, $actor);
-            (new \App\Libraries\EmailOutgoing())->send($message, $actor, is_string($action) ? $action : '', is_string($reply) ? $reply : '', $account);
-            return redirect()->to(site_url('email/account/' . $accountId))->with('success', 'E-mail enviado com sucesso pela conta ' . $account['email_user'] . '.');
+            $outgoing = new \App\Libraries\EmailOutgoing();
+            $action = is_string($action) ? $action : '';
+            $reply = is_string($reply) ? $reply : '';
+            $mail = $outgoing->prepare($message, array_replace($actor, ['email' => $action === 'forward' ? ($actor['email'] ?? '') : $account['email_user']]), $action, $reply);
+            $outgoing->smtpConfiguration($account);
+            $sent = new \App\Models\EmailSentModel();
+            $sentId = $sent->recordPending($message, $actor, $account, $action, $reply, $mail);
+            $outgoing->send($message, $actor, $action, $reply, $account);
+            $sentConfirmed = true;
+            $sent->confirmSent($sentId, $actor);
+            if ($this->request->isAJAX()) return $this->response->setHeader('Cache-Control', 'no-store')->setJSON(['message' => 'Envio aceito pelo servidor SMTP para ' . $mail['to'] . (!empty($mail['cc']) ? ' (Cc: ' . $mail['cc'] . ')' : '') . '. Consulte E-mails enviados para ver o conteúdo.', 'sent' => true, 'csrf' => csrf_hash()]);
+            return redirect()->to(site_url('email/account/' . $accountId))->with('email_sent_original_id', $messageId)->with('success', 'E-mail enviado com sucesso pela conta ' . $account['email_user'] . '.');
         } catch (PageNotFoundException $e) {
             throw $e;
         } catch (InvalidArgumentException $e) {
             $error = $e->getMessage();
         } catch (Throwable $e) {
-            $error = 'Não foi possível confirmar o envio. Confira as configurações SMTP da conta de e-mail.';
+            log_message('error', 'Email outgoing failed: account {account_id}, exception {exception_type}, confirmed {confirmed}.', ['account_id' => $accountId, 'exception_type' => get_class($e), 'confirmed' => $sentConfirmed ? 'yes' : 'no']);
+            $error = 'O envio não foi confirmado. Confira o servidor, a porta e a segurança SMTP em Gerenciar contas. O servidor de recebimento (IMAP) pode ser diferente do servidor de envio (SMTP).';
+            if (!empty($account['smtp_host'])) $error .= ' Servidor SMTP utilizado: ' . $account['smtp_host'] . ':' . ($account['smtp_port'] ?? 587) . '.';
         }
+        if ($this->request->isAJAX()) return $this->response->setStatusCode($sentConfirmed ? 200 : 502)->setHeader('Cache-Control', 'no-store')->setJSON(['error' => $sentConfirmed ? 'O servidor confirmou o envio, mas houve falha ao atualizar o histórico. Não reenvie esta resposta.' : $error, 'sent' => $sentConfirmed, 'csrf' => csrf_hash()]);
+        if ($sentConfirmed) return redirect()->to(site_url('email/account/' . $accountId))->with('error', 'O servidor confirmou o envio, mas houve falha ao atualizar o histórico. Não reenvie esta resposta.');
         $draft = $this->request->getPost('reply');
         return redirect()->to(site_url('email/account/' . $accountId))->with('error', $error)
-            ->with('email_reply_draft', ['id' => $messageId, 'text' => is_string($draft) ? mb_substr($draft, 0, 50000) : '']);
+            ->with('email_reply_draft', ['id' => $messageId, 'action' => $this->request->getPost('action') === 'reply_all' ? 'reply_all' : 'reply', 'text' => is_string($draft) ? mb_substr($draft, 0, 50000) : '']);
     }
 
     public function saveFilter(int $id = 0)
@@ -115,7 +130,14 @@ class Email extends BaseController
             ? ['id' => 0, 'email_user' => '', 'status' => 0, 'protocol' => 'imap']
             : (new EmailUserModel())->findOwned($id, $actor);
         $messages = (new \App\Models\EmailUserRowModel())->unified($actor);
-        return view('main', ['content' => view('email/account', ['account' => $account, 'accounts' => $accounts, 'messages' => $messages, 'spamSenders' => (new \App\Models\EmailSpamSenderModel())->forUser($actor)])]);
+        $sentMessages = (new \App\Models\EmailSentModel())->forUser($actor);
+        return view('main', ['content' => view('email/account', ['account' => $account, 'accounts' => $accounts, 'messages' => $messages, 'sentMessages' => $sentMessages, 'spamSenders' => (new \App\Models\EmailSpamSenderModel())->forUser($actor)])]);
+    }
+
+    public function sent(): string
+    {
+        $this->response->setHeader('Cache-Control', 'no-store');
+        return view('main', ['content' => view('email/sent', ['messages' => (new \App\Models\EmailSentModel())->forUser((array) session('auth_user'))])]);
     }
 
     public function inboxRedirect()

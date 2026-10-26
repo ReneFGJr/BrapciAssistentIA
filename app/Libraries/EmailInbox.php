@@ -36,6 +36,7 @@ class EmailInbox
                 $overview = imap_fetch_overview($stream, (string) $number, 0);
                 if ($header === false || !$overview) throw new EmailInboxException('Falha ao consultar uma mensagem. Tente atualizar novamente.');
                 $info = $overview[0];
+                $parsedHeader = imap_rfc822_parse_headers($header);
                 $key = hash('sha256', $account['protocol'] . '|' . $account['mail_user'] . '|' . $account['email_user'] . '|' . $validity . '|' . ($account['protocol'] === 'imap' ? imap_uid($stream, $number) : $header));
                 if ($messages->known((int) $account['id'], $key, $actor)) continue;
                 // Do not fetch oversized bodies; leave them for the original mail client.
@@ -47,6 +48,7 @@ class EmailInbox
                 $messages->import((int) $account['id'], [
                     'remote_key' => $key, 'message_id' => $info->message_id ?? null,
                     'email_from' => self::decodeHeader($info->from ?? ''), 'email_to' => self::decodeHeader($info->to ?? ''),
+                    'email_cc' => self::decodeHeader($parsedHeader->ccaddress ?? ''), 'email_reply_to' => self::decodeHeader($parsedHeader->reply_toaddress ?? ''),
                     'email_title' => self::decodeHeader($info->subject ?? '(Sem assunto)'), 'email_context' => $body,
                     'email_data' => $parsedDate === false ? null : gmdate('Y-m-d H:i:s', $parsedDate),
                     'email_status' => !empty($info->flagged) ? 2 : (!empty($info->seen) ? 1 : 0),

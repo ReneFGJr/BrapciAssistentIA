@@ -6,6 +6,8 @@ $migration = new App\Database\Migrations\CreateEmailUserRow(Config\Database::for
 $migration->up();
 require APPPATH . 'Database/Migrations/2026-10-15-000005_AddEmailServerDeleted.php';
 (new App\Database\Migrations\AddEmailServerDeleted(Config\Database::forge($db)))->up();
+require APPPATH . 'Database/Migrations/2026-10-26-000001_AddEmailReplyHeaders.php';
+(new App\Database\Migrations\AddEmailReplyHeaders(Config\Database::forge($db)))->up();
 $id = $emails->saveFor(null, $data, $actor);
 $connection = $emails->connection($id, $actor);
 verifyService($connection['password'] === $data['pass_user'], 'Server-only decrypted connection');

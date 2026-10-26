@@ -10,7 +10,7 @@ class EmailUserRowModel extends Model
 {
     protected $table = 'email_user_row';
     protected $returnType = 'array';
-    protected $allowedFields = ['user_id', 'email_user_id', 'remote_key', 'message_id', 'email_from', 'email_to', 'email_title', 'email_context', 'email_data', 'email_status', 'has_attachments', 'size_bytes', 'folder', 'created', 'lastupdated'];
+    protected $allowedFields = ['user_id', 'email_user_id', 'remote_key', 'message_id', 'email_from', 'email_to', 'email_cc', 'email_reply_to', 'email_title', 'email_context', 'email_data', 'email_status', 'has_attachments', 'size_bytes', 'folder', 'created', 'lastupdated'];
 
     public function forAccount(int $id, array $actor): self
     {
@@ -61,7 +61,7 @@ class EmailUserRowModel extends Model
     {
         if ($this->known($id, $message['remote_key'], $actor)) return false;
         // Only imported fields are accepted; ownership comes from the session.
-        $data = array_intersect_key($message, array_flip(['remote_key', 'message_id', 'email_from', 'email_to', 'email_title', 'email_context', 'email_data', 'email_status', 'has_attachments', 'size_bytes']));
+        $data = array_intersect_key($message, array_flip(['remote_key', 'message_id', 'email_from', 'email_to', 'email_cc', 'email_reply_to', 'email_title', 'email_context', 'email_data', 'email_status', 'has_attachments', 'size_bytes']));
         if ((new EmailSpamSenderModel($this->db))->blocked((string) ($data['email_from'] ?? ''), $actor)) $data['email_status'] = 4;
         $now = gmdate('Y-m-d H:i:s');
         if (!$this->insert($data + ['user_id' => (string) $actor['id'], 'email_user_id' => $id, 'folder' => 'INBOX', 'created' => $now, 'lastupdated' => $now])) throw new RuntimeException('Falha ao armazenar mensagem.');

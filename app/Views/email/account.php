@@ -5,6 +5,16 @@ $accounts = $accounts ?? [$account];
 $accountsById = array_column($accounts, null, 'id');
 $activeAccounts = array_values(array_filter($accounts, static fn($item) => (int) $item['status'] === 1));
 if (!in_array($savedFilter, ['all', '0', '2', '3', '4'], true)) $savedFilter = 'all';
+$repliesByMessage = [];
+foreach ($sentMessages ?? [] as $sentMessage) {
+    if (!in_array($sentMessage['action'], ['reply', 'reply_all'], true)) continue;
+    $key = !empty($sentMessage['original_message_id']) ? 'mid:' . trim($sentMessage['original_message_id']) : 'id:' . $sentMessage['original_id'];
+    $repliesByMessage[$key][] = $sentMessage;
+}
+$replyHistory = static function (array $message) use ($repliesByMessage): array {
+    $key = !empty($message['message_id']) ? 'mid:' . trim($message['message_id']) : 'id:' . $message['id'];
+    return $repliesByMessage[$key] ?? [];
+};
 $replyDraft = (array) session()->getFlashdata('email_reply_draft');
 ?>
 <style>
@@ -15,7 +25,8 @@ $replyDraft = (array) session()->getFlashdata('email_reply_draft');
 <div class="mail-shell" id="mail-shell">
     <header class="mail-toolbar">
         <div><h1 class="h4 mb-1"><i class="bi bi-inbox me-2" aria-hidden="true"></i>Caixa de entrada unificada</h1><span class="small text-light">Todas as suas contas · <?= count($accounts) ?> conta(s)</span></div>
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 flex-wrap">
+            <a class="btn btn-outline-light" href="<?= site_url('email/sent') ?>"><i class="bi bi-send" aria-hidden="true"></i> E-mails enviados</a>
             <a class="btn btn-outline-light" href="<?= site_url('email/config') ?>" title="Gerenciar contas" aria-label="Gerenciar contas"><i class="bi bi-gear" aria-hidden="true"></i></a>
             <form id="mail-sync-all" method="post" action="<?= site_url('email/account/sync') ?>">
                 <?= csrf_field() ?><input type="hidden" name="manual_sync" value="1"><button class="btn btn-primary" title="Atualizar todas as contas ativas" <?= $activeAccounts === [] ? 'disabled' : '' ?>><i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Atualizar</button>
@@ -48,6 +59,7 @@ $replyDraft = (array) session()->getFlashdata('email_reply_draft');
                         <?php endif; ?>
                         <?= esc($message['email_title'] ?: '(Sem assunto)') ?>
                     </span>
+                    <?php if ($replyHistory($message) !== []): ?><span class="mail-preview text-success"><i class="bi bi-reply-fill" aria-hidden="true"></i> Já respondido</span><?php endif; ?>
                     <?php if ($message['email_data']): ?>
                         <?php $receivedAt = new \DateTimeImmutable($message['email_data'], new \DateTimeZone('UTC')); ?>
                         <time class="mail-preview" datetime="<?= esc($receivedAt->format(DATE_ATOM), 'attr') ?>" title="Horário de Brasília"><?= esc($receivedAt->setTimezone(new \DateTimeZone('America/Sao_Paulo'))->format('d/m/Y H:i')) ?></time>
@@ -84,16 +96,31 @@ $replyDraft = (array) session()->getFlashdata('email_reply_draft');
                     <form method="post" action="<?= site_url('email/account/' . $messageAccount['id'] . '/messages/' . $message['id'] . '/send') ?>" onsubmit="if (!confirm('Encaminhar esta mensagem, sem anexos, para o e-mail do seu perfil?')) return false; this.querySelector('button').disabled = true;">
                         <?= csrf_field() ?><input type="hidden" name="action" value="forward"><button class="btn btn-sm btn-outline-light" title="Encaminhar para meu e-mail" aria-label="Encaminhar para meu e-mail"><i class="bi bi-forward" aria-hidden="true"></i></button>
                     </form>
-                    <button type="button" class="btn btn-sm btn-outline-light mail-reply-toggle" data-reply="reply-<?= (int) $message['id'] ?>" aria-controls="reply-<?= (int) $message['id'] ?>" aria-expanded="false" title="Responder por esta conta" aria-label="Responder por esta conta"><i class="bi bi-reply" aria-hidden="true"></i></button>
+                    <?php foreach (['reply' => ['Responder', 'bi-reply'], 'reply_all' => ['Responder a todos', 'bi-reply-all']] as $replyAction => [$replyLabel, $replyIcon]): ?>
+                    <button type="button" class="btn btn-sm btn-outline-light mail-reply-toggle" style="width:auto;padding:0 10px;gap:6px" data-action="<?= $replyAction ?>" data-reply="reply-<?= (int) $message['id'] ?>" aria-controls="reply-<?= (int) $message['id'] ?>" aria-expanded="false" <?= (int) $messageAccount['status'] !== 1 ? 'disabled' : '' ?>><i class="bi <?= $replyIcon ?>" aria-hidden="true"></i><?= $replyLabel ?></button>
+                    <?php endforeach; ?>
                     </div>
                     <form id="reply-<?= (int) $message['id'] ?>" class="mail-reply-compose mt-3" method="post" action="<?= site_url('email/account/' . $messageAccount['id'] . '/messages/' . $message['id'] . '/send') ?>" hidden onsubmit="this.querySelector('button[type=submit]').disabled = true;">
                         <?= csrf_field() ?><input type="hidden" name="action" value="reply">
-                        <label for="reply-text-<?= (int) $message['id'] ?>" class="form-label">Resposta para <?= esc($message['email_from']) ?></label>
+                        <label for="reply-text-<?= (int) $message['id'] ?>" class="form-label" data-reply-label>Resposta</label>
                         <textarea id="reply-text-<?= (int) $message['id'] ?>" name="reply" class="form-control mb-2" rows="6" maxlength="50000" required><?= (int) ($replyDraft['id'] ?? 0) === (int) $message['id'] ? esc($replyDraft['text'] ?? '') : '' ?></textarea>
-                        <p class="small">Envio por <?= esc($messageAccount['email_user']) ?>. Anexos originais não serão incluídos.</p>
+                        <p class="small">Envio por <?= esc($messageAccount['email_user']) ?>. <span data-reply-recipients data-single="<?= esc(($message['email_reply_to'] ?? '') ?: $message['email_from'], 'attr') ?>" data-all="<?= esc(implode('; ', array_filter([$message['email_reply_to'] ?? $message['email_from'], $message['email_to'], $message['email_cc'] ?? ''])), 'attr') ?>"></span> Anexos originais não serão incluídos.</p>
                         <button type="submit" class="btn btn-primary" title="Enviar resposta por esta conta" aria-label="Enviar resposta por esta conta"><i class="bi bi-send" aria-hidden="true"></i></button>
                     </form>
                     <h2><?= esc($message['email_title'] ?: '(Sem assunto)') ?></h2>
+                    <?php $responses = $replyHistory($message); ?>
+                    <?php if ($responses !== []): ?>
+                    <section class="mail-reply-compose my-3" aria-label="Respostas enviadas">
+                        <h3 class="h6 text-success"><i class="bi bi-check-circle" aria-hidden="true"></i> Este e-mail já foi respondido</h3>
+                        <?php foreach ($responses as $response): ?>
+                        <details class="mt-2" <?= $response === $responses[0] ? 'open' : '' ?>>
+                            <summary><?= $response['action'] === 'reply_all' ? 'Resposta a todos' : 'Resposta' ?> enviada em <?= esc((new \DateTimeImmutable($response['sent_at'], new \DateTimeZone('UTC')))->setTimezone(new \DateTimeZone('America/Sao_Paulo'))->format('d/m/Y H:i')) ?> (Brasília)</summary>
+                            <p class="small mt-2 mb-1">De: <?= esc($response['sender']) ?> ? Para: <?= esc($response['recipients']) ?><?php if ($response['cc'] !== ''): ?> ? Cc: <?= esc($response['cc']) ?><?php endif; ?></p>
+                            <div style="white-space:pre-wrap;overflow-wrap:anywhere"><?= esc($response['reply_text']) ?></div>
+                        </details>
+                        <?php endforeach; ?>
+                    </section>
+                    <?php endif; ?>
                     <?php if (!empty($message['server_deleted_at'])): ?><p class="small text-warning"><i class="bi bi-cloud-slash" aria-hidden="true"></i> Excluído do servidor IMAP. Cópia preservada no banco; os anexos do servidor podem não estar disponíveis.</p><?php endif; ?>
                     <p class="small text-info mb-2"><i class="bi bi-inbox" aria-hidden="true"></i> Conta: <?= esc($messageAccount['email_user']) ?></p>
                     <div class="mail-envelope"><div><strong>De:</strong> <?= esc($message['email_from']) ?></div><div><strong>Para:</strong> <?= esc($message['email_to']) ?></div><time><?= esc($message['email_data'] ?? 'Data indisponível') ?><?= $message['email_data'] ? ' UTC' : '' ?></time></div>
@@ -131,13 +158,42 @@ $replyDraft = (array) session()->getFlashdata('email_reply_draft');
 </dialog>
 <style>
 #mail-preview-dialog{width:min(1200px,95vw);max-width:95vw;height:88vh;max-height:95vh;padding:0;border:1px solid #536683;border-radius:12px;background:#172131;color:#ecf1fa;overflow:hidden}#mail-preview-dialog::backdrop{background:#020811c9}.mail-preview-toolbar{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:15px 20px;border-bottom:1px solid #354258}.mail-preview-toolbar h2{overflow-wrap:anywhere;min-width:0}.mail-preview-toolbar>div{flex-shrink:0}#mail-preview-content{height:calc(100% - 70px);padding:16px;overflow:auto}#mail-preview-content iframe{width:100%;height:100%;border:0;background:white}#mail-preview-content img{display:block;max-width:100%;max-height:100%;object-fit:contain;margin:auto}#mail-preview-content pre{white-space:pre-wrap;overflow-wrap:anywhere;color:#ecf1fa;font-size:14px}
+#mail-busy{position:fixed;inset:0;z-index:2000;background:#07101dcc;display:flex;align-items:center;justify-content:center;padding:24px}#mail-busy[hidden]{display:none}.mail-busy-card{background:#1b273a;color:#ecf1fa;border:1px solid #536683;border-radius:14px;padding:32px;text-align:center;max-width:500px;box-shadow:0 18px 60px #0008}#mail-operation-result{overflow-wrap:anywhere}
 @media(max-width:750px){.mail-message{max-height:85vh;max-height:85dvh;overflow:auto}.mail-actions{margin:-20px -20px 0;padding:12px 20px}}</style>
 <script>
 (() => {
     function notify(message, status = 'info') {
-        window.setOperationStatus(message, status);
+        const result = document.getElementById('mail-operation-result');
+        result.hidden = false;
+        result.textContent = message;
+        result.dataset.footerMessage = message;
+        result.dataset.footerStatus = status;
+        result.className = 'alert m-3 alert-' + (status === 'error' ? 'danger' : status === 'success' ? 'success' : 'info');
+        if (window.setOperationStatus) window.setOperationStatus(message, status);
+        else document.addEventListener('DOMContentLoaded', () => window.setOperationStatus?.(message, status), {once: true});
     }
     const shell = document.getElementById('mail-shell');
+    const result = document.createElement('div');
+    result.id = 'mail-operation-result'; result.hidden = true; result.setAttribute('role', 'status'); result.setAttribute('aria-live', 'polite');
+    shell.querySelector('.mail-toolbar').after(result);
+    const busy = document.createElement('div');
+    busy.id = 'mail-busy'; busy.hidden = true; busy.setAttribute('role', 'status'); busy.setAttribute('aria-live', 'polite');
+    busy.innerHTML = '<div class="mail-busy-card"><span class="spinner-border text-info" aria-hidden="true"></span><p class="mt-3 mb-0"></p></div>';
+    document.body.append(busy);
+    let working = false;
+    function setBusy(message = '') {
+        working = Boolean(message);
+        busy.hidden = !working;
+        busy.querySelector('p').textContent = message;
+        shell.inert = working;
+        shell.setAttribute('aria-busy', String(working));
+        if (working) notify(message);
+    }
+    function reloadWithResult(message, status, originalId = null) {
+        try { sessionStorage.setItem('email-operation-result', JSON.stringify({message, status, originalId})); }
+        catch (_) { setBusy(); notify(message, status); return; }
+        window.location.reload();
+    }
     const rows = [...shell.querySelectorAll('.mail-row')];
     const panels = [...shell.querySelectorAll('.mail-message')];
     const placeholder = document.getElementById('mail-placeholder');
@@ -191,8 +247,15 @@ $replyDraft = (array) session()->getFlashdata('email_reply_draft');
     }
     shell.querySelectorAll('.mail-reply-toggle').forEach(button => button.addEventListener('click', () => {
         const composer = document.getElementById(button.dataset.reply);
-        composer.hidden = !composer.hidden;
-        button.setAttribute('aria-expanded', String(!composer.hidden));
+        const sameAction = composer.querySelector('[name="action"]').value === button.dataset.action;
+        composer.hidden = !composer.hidden && sameAction;
+        composer.querySelector('[name="action"]').value = button.dataset.action;
+        composer.querySelector('[data-reply-label]').textContent = button.dataset.action === 'reply_all' ? 'Resposta a todos' : 'Resposta';
+        const recipients = composer.querySelector('[data-reply-recipients]');
+        recipients.textContent = 'Destinat?rios: ' + (button.dataset.action === 'reply_all' ? recipients.dataset.all : recipients.dataset.single) + '. Sua conta ? exclu?da da resposta a todos e endereços repetidos s?o removidos.';
+        shell.querySelectorAll('.mail-reply-toggle').forEach(item => {
+            if (item.dataset.reply === button.dataset.reply) item.setAttribute('aria-expanded', String(!composer.hidden && item === button));
+        });
         if (!composer.hidden) composer.querySelector('textarea').focus();
     }));
     let filter = <?= json_encode($savedFilter) ?>, selected = null;
@@ -246,12 +309,19 @@ $replyDraft = (array) session()->getFlashdata('email_reply_draft');
                 headers: {'X-Requested-With': 'XMLHttpRequest'},
                 body: new URLSearchParams({...values, [tokenName]: token})
             });
-            const data = await response.json();
+            let data;
+            try { data = await response.json(); }
+            catch (_) { throw new Error('Não foi possível obter o resultado da operação. Confira sua sessão e a conexão. Para envio, consulte E-mails enviados antes de tentar novamente.'); }
             if (data.csrf) {
                 token = data.csrf;
                 document.querySelectorAll('input[type="hidden"]').forEach(input => { if (input.name === tokenName) input.value = token; });
             }
-            if (!response.ok) throw new Error(data.error || 'Falha ao salvar.');
+            if (!response.ok) {
+                const fallback = response.status === 403
+                    ? 'Sua sessão ou autorização expirou. Recarregue a página antes de tentar novamente.'
+                    : 'A operação falhou (HTTP ' + response.status + '). Nenhum envio foi confirmado.';
+                throw new Error(typeof data.error === 'string' ? data.error : fallback);
+            }
             return data;
         });
         pending = operation.catch(() => {});
@@ -261,7 +331,7 @@ $replyDraft = (array) session()->getFlashdata('email_reply_draft');
     function scheduleRead() {
         cancelRead();
         const row = selected;
-        if (!row || row.dataset.status !== '0' || document.hidden) return;
+        if (!row || row.dataset.status !== '0' || document.hidden || working) return;
         readTimer = setTimeout(() => {
             post('/messages/' + row.dataset.message + '/read', {}, () => selected === row && !document.hidden, accountBase + '/' + row.dataset.account)
                 .then(data => {
@@ -278,18 +348,19 @@ $replyDraft = (array) session()->getFlashdata('email_reply_draft');
     document.getElementById('mail-sync-all').addEventListener('submit', async event => {
         event.preventDefault();
         const button = event.currentTarget.querySelector('button');
-        if (button.disabled) return;
+        if (button.disabled || working) return;
         button.disabled = true;
         cancelRead();
         const failures = [];
         let total = 0;
         for (const item of activeAccounts) {
-            notify('Consultando ' + item.email + '…');
+            setBusy('Coletando e-mails de ' + item.email + '…');
             try { const data = await post('/sync', {manual_sync: '1'}, () => true, accountBase + '/' + item.id); total += data.count; }
             catch (error) { failures.push(item.email + ': ' + error.message); }
         }
-        if (failures.length === 0) window.location.reload();
+        if (failures.length === 0) reloadWithResult('Coleta concluída: ' + total + ' mensagem(ns) importada(s).', 'success');
         else {
+            setBusy();
             notify(total + ' mensagem(ns) importada(s). ' + failures.join(' ') + ' Recarregue a página para ver as mensagens importadas.', 'error');
             button.disabled = false;
             scheduleRead();
@@ -317,6 +388,27 @@ $replyDraft = (array) session()->getFlashdata('email_reply_draft');
             notify(error.message, 'error');
             button.disabled = false;
         } finally { scheduleRead(); }
+    }));
+    shell.querySelectorAll('form[action$="/send"]').forEach(form => form.addEventListener('submit', async event => {
+        if (event.defaultPrevented) return;
+        event.preventDefault();
+        if (working) return;
+        const button = form.querySelector('button[type="submit"], button:not([type])');
+        button.disabled = true;
+        cancelRead();
+        setBusy('Enviando e-mail pelo servidor SMTP… Aguarde a confirmação.');
+        try {
+            const data = await post('', Object.fromEntries(new FormData(form)), () => true, form.getAttribute('action'));
+            if (data.sent) {
+                reloadWithResult(data.message || data.error, data.error ? 'error' : 'success', form.closest('.mail-message').id.replace('message-', ''));
+            } else throw new Error(data.error || 'O envio não foi confirmado.');
+        } catch (error) {
+            setBusy();
+            notify(error.message, 'error');
+            button.disabled = false;
+            form.querySelector('textarea')?.focus();
+            scheduleRead();
+        }
     }));
     shell.querySelectorAll('form').forEach(form => form.addEventListener('submit', event => {
         if (event.defaultPrevented) return;
@@ -365,7 +457,42 @@ $replyDraft = (array) session()->getFlashdata('email_reply_draft');
         button.setAttribute('aria-pressed', String(active));
     });
     apply();
+    const sentOriginalId = <?= json_encode(session()->getFlashdata('email_sent_original_id')) ?>;
+    if (sentOriginalId) {
+        const sentRow = rows.find(item => item.dataset.message === String(sentOriginalId));
+        if (sentRow) {
+            if (sentRow.hidden) shell.querySelector('[data-filter="all"]').click();
+            sentRow.click();
+        }
+    }
+    const draft = <?= json_encode($replyDraft, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+    if (draft.id) {
+        const row = rows.find(item => item.dataset.message === String(draft.id));
+        if (row) {
+            query.value = '';
+            if (row.hidden) shell.querySelector('[data-filter="all"]').click();
+            row.click();
+            const toggle = document.querySelector('[data-reply="reply-' + draft.id + '"][data-action="' + (draft.action === 'reply_all' ? 'reply_all' : 'reply') + '"]');
+            toggle?.click();
+        }
+    }
     query.addEventListener('input', () => apply());
+    document.addEventListener('DOMContentLoaded', () => {
+        let saved;
+        try {
+            saved = JSON.parse(sessionStorage.getItem('email-operation-result'));
+            sessionStorage.removeItem('email-operation-result');
+        } catch (_) { return; }
+        if (!saved) return;
+        if (saved.originalId) {
+            const row = rows.find(item => item.dataset.message === String(saved.originalId));
+            if (row) {
+                if (row.hidden) shell.querySelector('[data-filter="all"]').click();
+                row.click();
+            }
+        }
+        notify(saved.message, saved.status);
+    }, {once: true});
     shell.querySelectorAll('.mail-back-button').forEach(button => button.addEventListener('click', () => { const previous = selected; close(); previous?.focus(); }));
 })();
 </script>

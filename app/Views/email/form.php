@@ -34,8 +34,8 @@ $values += ['smtp_host' => '', 'smtp_port' => '587', 'smtp_security' => 'tls'];
                     </select>
                 </div>
             <?php endforeach; ?>
-            <div class="col-12 mt-4"><h2 class="h5">Envio de e-mail (SMTP)</h2><p class="small">Usa o mesmo e-mail e a mesma senha desta conta. Se o servidor SMTP ficar em branco, será usado o servidor de recebimento, com a porta e a segurança abaixo.</p></div>
-            <div class="col-md-6"><label for="smtp-host" class="form-label">Servidor SMTP</label><input id="smtp-host" name="smtp_host" class="form-control" maxlength="253" placeholder="Mesmo servidor de recebimento" value="<?= esc($values['smtp_host'], 'attr') ?>"></div>
+            <div class="col-12 mt-4"><h2 class="h5">Envio de e-mail (SMTP)</h2><p class="small">Usa o mesmo e-mail e a mesma senha desta conta. Informe o servidor SMTP fornecido pelo provedor para habilitar o envio. O servidor IMAP é usado somente para receber mensagens.</p></div>
+            <div class="col-md-6"><label for="smtp-host" class="form-label">Servidor SMTP</label><input id="smtp-host" name="smtp_host" class="form-control" maxlength="253" placeholder="smtp.seu-provedor.com" value="<?= esc($values['smtp_host'], 'attr') ?>"><div class="form-text text-light">Necessário para enviar. Sem SMTP, a conta permite somente receber e-mails.</div></div>
             <div class="col-md-3"><label for="smtp-port" class="form-label">Porta SMTP</label><input id="smtp-port" name="smtp_port" class="form-control" type="number" min="1" max="65535" required value="<?= esc($values['smtp_port'], 'attr') ?>"></div>
             <div class="col-md-3"><label for="smtp-security" class="form-label">Segurança SMTP</label><select id="smtp-security" name="smtp_security" class="form-select"><?php foreach (['tls' => 'TLS / STARTTLS', 'ssl' => 'SSL', 'none' => 'Sem criptografia'] as $value => $label): ?><option value="<?= esc($value, 'attr') ?>" <?= $values['smtp_security'] === $value ? 'selected' : '' ?>><?= esc($label) ?></option><?php endforeach; ?></select></div>
         </div>
