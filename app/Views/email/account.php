@@ -82,7 +82,7 @@ foreach ($meetings ?? [] as $meeting) $meetingsByMessage[$meeting['message_id']]
                 <article class="mail-message" id="message-<?= (int) $message['id'] ?>" hidden>
                     <button type="button" class="btn btn-sm btn-outline-light mail-back-button mb-3"><i class="bi bi-arrow-left" aria-hidden="true"></i> Voltar às mensagens</button>
                     <div class="mail-actions">
-                    <?php if (!empty($calendarActive)): ?><a class="btn btn-sm btn-outline-info flex-shrink-0" href="<?= site_url('email/account/' . (int) $message['email_user_id'] . '/messages/' . (int) $message['id'] . '/meeting') ?>"><i class="bi bi-calendar-plus" aria-hidden="true"></i> Agendar reunião</a><?php endif; ?>
+                    <?php if (!empty($calendarActive)): ?><a class="btn btn-sm btn-outline-info flex-shrink-0" title="Agendar reunião" aria-label="Agendar reunião" href="<?= site_url('email/account/' . (int) $message['email_user_id'] . '/messages/' . (int) $message['id'] . '/meeting') ?>"><i class="bi bi-calendar-plus" aria-hidden="true"></i></a><?php endif; ?>
                     <?php foreach ([2 => ['Importante', 'warning'], 3 => ['Urgente', 'danger']] as $priority => [$priorityLabel, $priorityColor]): ?>
                         <form class="mail-priority-form" method="post" action="<?= site_url('email/account/' . $messageAccount['id'] . '/messages/' . $message['id'] . '/status') ?>">
                             <?= csrf_field() ?><input type="hidden" name="email_status" value="<?= $priority ?>">
