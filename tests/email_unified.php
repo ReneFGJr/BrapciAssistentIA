@@ -20,6 +20,10 @@ verifyService(!str_contains($html, 'foreign@example.test'), 'Foreign account not
 verifyService(str_contains($html, 'first@example.test') && str_contains($html, 'second-unified@example.test'), 'Source accounts identified');
 verifyService(str_contains($html, 'name="manual_sync" value="1"')
     && str_contains($html, "{manual_sync: '1'}"), 'Inbox sync requires the explicit Update action');
+verifyService(str_contains($html, 'Consultar anexos') && str_contains($html, 'Clique em Atualizar para consultar novos e-mails'), 'Server queries presented as explicit actions');
+$reader = substr($html, strpos($html, "rows.forEach(row => row.addEventListener('click'"));
+$reader = substr($reader, 0, strpos($reader, 'function apply'));
+verifyService(!str_contains($reader, 'loadAttachments(') && !str_contains($reader, "post('/sync'"), 'Opening or restoring a message uses stored data without querying mail server');
 verifyService(!str_contains($html, "element.setAttribute('sandbox'"), 'PDF preview is not blocked by Chromium sandbox restrictions');
 verifyService(str_contains($html, "element.referrerPolicy = 'no-referrer'"), 'PDF preview does not send a referrer');
 echo "Unified inbox: ownership, chronological order and account-specific actions passed.\n";

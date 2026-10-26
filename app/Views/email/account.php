@@ -150,14 +150,14 @@ foreach ($meetings ?? [] as $meeting) $meetingsByMessage[$meeting['message_id']]
                     <div class="mail-body"><?= esc($displayBody) ?></div>
                     <div class="mail-files" data-files-message="<?= (int) $message['id'] ?>" aria-label="Anexos da mensagem">
                         <h3 class="h6"><i class="bi bi-paperclip" aria-hidden="true"></i> Anexos</h3>
-                        <div class="mail-files-list" aria-live="polite">Selecione a mensagem para consultar os arquivos.</div>
+                        <div class="mail-files-list" aria-live="polite"><button type="button" class="btn btn-sm btn-outline-light mail-load-files" data-message="<?= (int) $message['id'] ?>">Consultar anexos</button></div>
                     </div>
                     </div>
                 </article>
             <?php endforeach; ?>
         </div>
     </div>
-    <footer class="mail-bottom">Busca e filtros em todos os e-mails · Status locais ao sistema · Atualização: até 50 mensagens por consulta, com limite de 10 MB por mensagem. Anexos disponíveis para download ao abrir a mensagem.</footer>
+    <footer class="mail-bottom">Mensagens salvas no sistema · Clique em Atualizar para consultar novos e-mails · Até 50 mensagens por consulta, com limite de 10 MB por mensagem · Use Consultar anexos para buscar os arquivos no servidor.</footer>
 </div>
 </section>
 <dialog id="mail-preview-dialog" aria-labelledby="mail-preview-title">
@@ -438,13 +438,16 @@ foreach ($meetings ?? [] as $meeting) $meetingsByMessage[$meeting['message_id']]
         shell.classList.remove('reading');
         selected = null;
     }
+    shell.querySelectorAll('.mail-load-files').forEach(button => button.addEventListener('click', () => {
+        const row = rows.find(item => item.dataset.message === button.dataset.message);
+        if (row) loadAttachments(row);
+    }));
     rows.forEach(row => row.addEventListener('click', () => {
         selected = row;
         panels.forEach(panel => panel.hidden = panel.id !== 'message-' + row.dataset.message);
         rows.forEach(item => { item.classList.toggle('selected', item === row); item.setAttribute('aria-pressed', String(item === row)); });
         placeholder.hidden = true;
         shell.classList.add('reading');
-        loadAttachments(row);
         apply(true);
         scheduleRead();
     }));
