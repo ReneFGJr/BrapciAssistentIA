@@ -52,4 +52,10 @@ class EmailMeetingModel extends Model
         if (empty($actor['id'])) return [];
         return $this->where('user_id', (string) $actor['id'])->where('status', 'confirmed')->orderBy('id', 'DESC')->findAll();
     }
+
+    public function forMessages(array $actor, array $messages): array
+    {
+        if (empty($actor['id']) || $messages === []) return [];
+        return $this->where('user_id', (string) $actor['id'])->where('status', 'confirmed')->whereIn('message_id', array_column($messages, 'id'))->orderBy('id', 'DESC')->findAll();
+    }
 }

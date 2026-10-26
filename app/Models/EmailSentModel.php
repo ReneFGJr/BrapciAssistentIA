@@ -36,4 +36,15 @@ class EmailSentModel extends Model
         if (empty($actor['id'])) return [];
         return $this->where('user_id', (string) $actor['id'])->where('status', 'sent')->orderBy('sent_at', 'DESC')->orderBy('id', 'DESC')->findAll();
     }
+
+    public function forMessages(array $actor, array $messages): array
+    {
+        if (empty($actor['id']) || $messages === []) return [];
+        $ids = array_column($messages, 'id');
+        $messageIds = array_values(array_filter(array_column($messages, 'message_id'), static fn($id) => is_string($id) && trim($id) !== ''));
+        $this->select('id, original_id, original_message_id, action, sender, recipients, cc, sent_at, reply_text')
+            ->where('user_id', (string) $actor['id'])->where('status', 'sent')->whereIn('action', ['reply', 'reply_all'])->groupStart()->whereIn('original_id', $ids);
+        if ($messageIds !== []) $this->orWhereIn('original_message_id', $messageIds);
+        return $this->groupEnd()->orderBy('sent_at', 'DESC')->orderBy('id', 'DESC')->findAll();
+    }
 }

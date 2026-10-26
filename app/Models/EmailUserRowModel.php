@@ -34,8 +34,29 @@ class EmailUserRowModel extends Model
     public function unified(array $actor): array
     {
         $accounts = array_column((new EmailUserModel($this->db))->forUser($actor), null, 'id');
+        return $this->deduplicate($this->forUser($actor)->findAll(), $accounts);
+    }
+
+    public function unifiedPage(array $actor, int $page = 1, int $perPage = 50): array
+    {
+        $perPage = max(1, min(50, $perPage));
+        $accounts = array_column((new EmailUserModel($this->db))->forUser($actor), null, 'id');
+        // Do not download every message body and original HTML just to build the list.
+        $summary = $this->forUser($actor)->select("id, email_user_id, message_id, email_from, email_title, email_data, server_deleted_at, CASE WHEN message_id IS NULL OR TRIM(message_id) = '' THEN email_context ELSE '' END AS email_context", false)->findAll();
+        $visible = $this->deduplicate($summary, $accounts);
+        $total = count($visible);
+        $pages = max(1, (int) ceil($total / $perPage));
+        $page = max(1, min($pages, $page));
+        $ids = array_column(array_slice($visible, ($page - 1) * $perPage, $perPage), 'id');
+        unset($summary, $visible);
+        $messages = $ids === [] ? [] : $this->forUser($actor)->whereIn('id', $ids)->findAll();
+        return ['messages' => $messages, 'page' => $page, 'pages' => $pages, 'total' => $total];
+    }
+
+    private function deduplicate(array $rows, array $accounts): array
+    {
         $groups = [];
-        foreach ($this->forUser($actor)->findAll() as $row) {
+        foreach ($rows as $row) {
             $messageId = trim((string) ($row['message_id'] ?? ''));
             $fingerprint = $messageId !== '' ? 'id:' . $messageId : 'body:' . hash('sha256', json_encode([
                 mb_strtolower(trim($row['email_from'])), trim($row['email_title']), $row['email_data'],

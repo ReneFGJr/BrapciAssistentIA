@@ -151,8 +151,27 @@ class Email extends BaseController
 
     public function account(int $id = 0): string
     {
+        static $shutdownRegistered = false;
+        if (!$shutdownRegistered) {
+            $shutdownRegistered = true;
+            $reserve = str_repeat(' ', 262144);
+            register_shutdown_function(static function () use (&$reserve): void {
+                $error = error_get_last();
+                if ($error === null || !in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) return;
+                $reserve = null; // Leave enough memory to report an exhausted-memory failure.
+                $reference = substr(hash('sha256', microtime(true) . $error['file'] . $error['line']), 0, 12);
+                $detail = 'Email inbox fatal [' . $reference . ']: ' . $error['message'] . ' at ' . $error['file'] . ':' . $error['line'];
+                error_log($detail);
+                @file_put_contents(WRITEPATH . 'logs/email-inbox-fatal.log', gmdate('c') . ' ' . $detail . PHP_EOL, FILE_APPEND | LOCK_EX);
+                if (!headers_sent()) { http_response_code(500); header('Content-Type: text/html; charset=UTF-8'); }
+                echo '<div role="alert" style="padding:24px;background:#172131;color:white;font:16px Arial">Não foi possível concluir o carregamento da caixa. Código: <strong>' . $reference . '</strong>. Consulte writable/logs/email-inbox-fatal.log e o log do PHP.</div>';
+            });
+        }
+        log_message('debug', 'Email inbox: controller entered; memory_limit={memory_limit}.', ['memory_limit' => ini_get('memory_limit')]);
         try {
-            return $this->renderAccount($id);
+            $html = $this->renderAccount($id);
+            log_message('debug', 'Email inbox: rendering complete; bytes={bytes}; peak_memory={memory}.', ['bytes' => strlen($html), 'memory' => memory_get_peak_usage(true)]);
+            return $html;
         } catch (PageNotFoundException $e) { throw $e;
         } catch (Throwable $e) {
             $reference = bin2hex(random_bytes(6));
@@ -169,11 +188,13 @@ class Email extends BaseController
         $this->response->setHeader('Cache-Control', 'no-store')->setHeader('Referrer-Policy', 'no-referrer');
         $actor = (array) session('auth_user');
         $accounts = (new EmailUserModel())->forUser($actor);
+        log_message('debug', 'Email inbox: accounts loaded.');
         $account = $id === 0
             ? ['id' => 0, 'email_user' => '', 'status' => 0, 'protocol' => 'imap']
             : (new EmailUserModel())->findOwned($id, $actor);
         $requestedMessage = $this->request->getGet('message');
         $openMessage = is_string($requestedMessage) && ctype_digit($requestedMessage) && (int) $requestedMessage > 0;
+        $inboxPage = null;
         if ($openMessage) {
             // A direct message link loads only that saved message, never the whole inbox.
             $message = (new \App\Models\EmailUserRowModel())->forUser($actor)->where('id', (int) $requestedMessage)->first();
@@ -181,15 +202,18 @@ class Email extends BaseController
             $messages = [$message];
         } else {
             // Show the user's imported messages without contacting the mail server.
-            $messages = (new \App\Models\EmailUserRowModel())->unified($actor);
+            $page = filter_var($this->request->getGet('page') ?? 1, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: 1;
+            $inboxPage = (new \App\Models\EmailUserRowModel())->unifiedPage($actor, $page);
+            $messages = $inboxPage['messages'];
         }
+        log_message('debug', 'Email inbox: stored messages loaded; count={count}.', ['count' => count($messages)]);
         $sentMessages = [];
         $meetings = [];
         $inboxWarnings = [];
         if ($messages !== []) {
             foreach (['sent' => \App\Models\EmailSentModel::class, 'meetings' => \App\Models\EmailMeetingModel::class] as $history => $modelClass) {
                 try {
-                    $records = (new $modelClass())->forUser($actor);
+                    $records = (new $modelClass())->forMessages($actor, $messages);
                     if ($history === 'sent') $sentMessages = $records;
                     else $meetings = $records;
                 } catch (Throwable $e) {
@@ -203,8 +227,9 @@ class Email extends BaseController
             $privateCalendar = (new \App\Models\PrivateGoogleServiceModel())->summary($actor);
             $calendarActive = !empty($privateCalendar['connected']) || (new \App\Models\UserServiceModel())->googleSummary($actor) !== null;
         } catch (Throwable $e) { /* Email remains available if calendar credentials need repair. */ }
+        log_message('debug', 'Email inbox: histories loaded; rendering view.');
         return view('main', ['content' => view('email/account', ['account' => $account, 'accounts' => $accounts, 'messages' => $messages, 'sentMessages' => $sentMessages,
-            'calendarActive' => $calendarActive,
+            'calendarActive' => $calendarActive, 'inboxPage' => $inboxPage,
             'meetings' => $meetings, 'inboxWarnings' => $inboxWarnings,
             'spamSenders' => (new \App\Models\EmailSpamSenderModel())->forUser($actor)])]);
     }

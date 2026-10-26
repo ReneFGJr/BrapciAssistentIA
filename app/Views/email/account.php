@@ -46,8 +46,8 @@ foreach ($meetings ?? [] as $meeting) $meetingsByMessage[$meeting['message_id']]
     <div class="mail-layout">
         <div class="mail-list">
             <div class="mail-search">
-                <label for="mail-query" class="visually-hidden">Buscar em todos os e-mails</label>
-                <input id="mail-query" class="form-control" type="search" placeholder="Buscar em todos os e-mails">
+                <label for="mail-query" class="visually-hidden">Buscar nos e-mails desta página</label>
+                <input id="mail-query" class="form-control" type="search" placeholder="Buscar nesta página">
                 <div class="mail-tabs" aria-label="Filtrar todos os e-mails">
                     <?php foreach (['all' => 'Todas', '0' => 'Não lidas', '2' => 'Importantes', '3' => 'Urgentes', '4' => 'SPAM'] as $filter => $label): ?><button type="button" class="btn btn-sm <?= $filter === $savedFilter ? 'btn-primary' : 'btn-outline-light' ?>" data-filter="<?= esc($filter, 'attr') ?>" aria-pressed="<?= $filter === $savedFilter ? 'true' : 'false' ?>"><?= esc($label) ?></button><?php endforeach; ?>
                 </div>
@@ -75,6 +75,13 @@ foreach ($meetings ?? [] as $meeting) $meetingsByMessage[$meeting['message_id']]
                 <p id="mail-empty-list" class="p-4 text-center" <?= $messages !== [] ? 'hidden' : '' ?>><?= !empty($inboxAwaitingUpdate) ? 'Clique em Atualizar para carregar a caixa de entrada.' : ($messages === [] ? 'Nenhuma mensagem encontrada. Clique em Atualizar para consultar o servidor.' : 'Nenhuma mensagem encontrada.') ?></p>
             </div>
             <div class="mail-page-nav small text-light" id="mail-message-count"><?= count($messages) ?> mensagem(ns)</div>
+            <?php if (($inboxPage['pages'] ?? 1) > 1): ?>
+            <nav class="mail-page-nav d-flex gap-2 align-items-center flex-wrap" aria-label="Páginas da caixa de entrada">
+                <?php if ($inboxPage['page'] > 1): ?><a class="btn btn-sm btn-outline-light" href="<?= esc(site_url('email/account' . ($account['id'] ? '/' . $account['id'] : '')) . '?page=' . ($inboxPage['page'] - 1), 'attr') ?>">Anterior</a><?php endif; ?>
+                <span>Página <?= $inboxPage['page'] ?> de <?= $inboxPage['pages'] ?> · <?= $inboxPage['total'] ?> e-mails salvos</span>
+                <?php if ($inboxPage['page'] < $inboxPage['pages']): ?><a class="btn btn-sm btn-outline-light" href="<?= esc(site_url('email/account' . ($account['id'] ? '/' . $account['id'] : '')) . '?page=' . ($inboxPage['page'] + 1), 'attr') ?>">Próxima</a><?php endif; ?>
+            </nav>
+            <?php endif; ?>
         </div>
         <div class="mail-reader" aria-label="Leitura da mensagem">
             <div id="mail-placeholder" class="mail-placeholder"><i class="bi bi-envelope-open" aria-hidden="true"></i><h2 class="h5"><?= !empty($inboxAwaitingUpdate) ? 'Caixa de entrada aguardando atualização' : 'Selecione uma mensagem' ?></h2><p><?= !empty($inboxAwaitingUpdate) ? 'Clique em Atualizar para consultar e carregar os e-mails.' : 'O conteúdo do e-mail aparecerá aqui.' ?></p></div>
