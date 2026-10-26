@@ -17,7 +17,7 @@ $start = (new \DateTimeImmutable('tomorrow 09:00', new \DateTimeZone('America/Sa
         <fieldset <?= !$canWrite ? 'disabled' : '' ?>>
             <div class="mb-3"><label class="form-label" for="meeting-title">Título da reunião</label><input id="meeting-title" class="form-control" name="title" maxlength="255" required value="<?= esc(mb_substr($message['email_title'] ?: 'Reunião', 0, 255), 'attr') ?>"></div>
             <div class="row g-3 mb-3">
-                <div class="col-md-4"><label class="form-label" for="meeting-date">Data (dd/mm/aaaa)</label><input id="meeting-date" type="text" name="start_date" class="form-control" inputmode="numeric" placeholder="dd/mm/aaaa" pattern="[0-9]{2}/[0-9]{2}/[0-9]{4}" maxlength="10" required value="<?= $start->format('d/m/Y') ?>"></div>
+                <div class="col-md-4"><label class="form-label" for="meeting-date">Data (dd/mm/aaaa)</label><div class="input-group"><input id="meeting-date" type="text" name="start_date" class="form-control" inputmode="numeric" placeholder="dd/mm/aaaa" pattern="[0-9]{2}/[0-9]{2}/[0-9]{4}" maxlength="10" required value="<?= $start->format('d/m/Y') ?>"><span class="input-group-text position-relative meeting-calendar-control"><i class="bi bi-calendar3" aria-hidden="true"></i><input id="meeting-calendar" type="date" aria-label="Selecionar dia no calendário" title="Selecionar dia no calendário" value="<?= $start->format('Y-m-d') ?>" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer"></span></div></div>
                 <div class="col-md-2"><label class="form-label" for="meeting-time">Início (Brasília)</label><input id="meeting-time" type="time" name="start_time" class="form-control" required value="<?= $start->format('H:i') ?>"></div>
                 <div class="col-md-6"><label class="form-label" for="meeting-duration">Duração da reunião</label><select id="meeting-duration" name="duration" class="form-select" required><?php foreach ([15 => '15 minutos', 30 => '30 minutos', 60 => '1 hora', 120 => '2 horas', 180 => '3 horas'] as $minutes => $label): ?><option value="<?= $minutes ?>" <?= $minutes === 60 ? 'selected' : '' ?>><?= $label ?></option><?php endforeach; ?></select><p class="small mt-2">O término será calculado a partir do início, no horário de Brasília.</p></div>
             </div>
@@ -34,6 +34,18 @@ $start = (new \DateTimeImmutable('tomorrow 09:00', new \DateTimeZone('America/Sa
 <style>#meeting-busy{position:fixed;inset:0;z-index:2000;display:flex;align-items:center;justify-content:center;background:#07101ddd;color:white}#meeting-busy[hidden]{display:none}#meeting-busy>div{background:#1b273a}</style>
 <script>
 (() => {
+    const dateText = document.getElementById('meeting-date');
+    const calendar = document.getElementById('meeting-calendar');
+    calendar.addEventListener('click', () => { if (calendar.showPicker) calendar.showPicker(); });
+    calendar.addEventListener('change', () => {
+        if (!calendar.value) return;
+        const [year, month, day] = calendar.value.split('-');
+        dateText.value = day + '/' + month + '/' + year;
+    });
+    dateText.addEventListener('input', () => {
+        const parts = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(dateText.value);
+        calendar.value = parts ? parts[3] + '-' + parts[2] + '-' + parts[1] : '';
+    });
     const form = document.getElementById('email-meeting-form');
     const result = document.getElementById('meeting-result');
     const busy = document.getElementById('meeting-busy');

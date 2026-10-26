@@ -5,10 +5,13 @@ const source = fs.readFileSync('app/Views/email/meeting.php', 'utf8');
 const script = source.slice(source.indexOf('<script>') + 8, source.lastIndexOf('</script>')).replace(/<\?=[\s\S]*?\?>/g, 'csrf');
 async function exercise(success) {
     let handler, release;
+    const dateHandlers = {}, calendarHandlers = {};
+    const dateText = {value: '27/10/2026', addEventListener: (name, fn) => dateHandlers[name] = fn};
+    const calendar = {value: '2026-10-27', addEventListener: (name, fn) => calendarHandlers[name] = fn, showPicker() { this.opened = true; }};
     const button = {disabled: false}, csrf = {value: 'old'}, result = {}, busy = {hidden: true}, links = [], statuses = [];
     const form = {getAttribute: () => '/meeting', querySelector: selector => selector === 'button' ? button : csrf,
         setAttribute() {}, addEventListener: (_, callback) => handler = callback};
-    const context = {document: {getElementById: id => ({'email-meeting-form': form, 'meeting-result': result, 'meeting-busy': busy, 'meeting-links': {append: link => links.push(link)}}[id]), createElement: () => ({})},
+    const context = {document: {getElementById: id => ({'meeting-date': dateText, 'meeting-calendar': calendar, 'email-meeting-form': form, 'meeting-result': result, 'meeting-busy': busy, 'meeting-links': {append: link => links.push(link)}}[id]), createElement: () => ({})},
         window: {setOperationStatus: (...args) => statuses.push(args)},
         FormData: class {},
         fetch: (url, options) => {
@@ -18,6 +21,9 @@ async function exercise(success) {
                 : {error: 'Reconecte a agenda', csrf: 'new'}}); });
         }};
     vm.runInNewContext(script, context);
+    calendarHandlers.click(); assert.equal(calendar.opened, true);
+    calendar.value = '2026-12-31'; calendarHandlers.change(); assert.equal(dateText.value, '31/12/2026');
+    dateText.value = '01/11/2026'; dateHandlers.input(); assert.equal(calendar.value, '2026-11-01');
     const pending = handler({preventDefault() {}});
     assert.equal(busy.hidden, false); assert.equal(button.disabled, true); assert.equal(form.inert, true);
     release(); await pending;
