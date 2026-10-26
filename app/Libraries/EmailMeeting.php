@@ -9,6 +9,19 @@ class EmailMeeting
 {
     public static function payload(array $message, array $values, string $reference): array
     {
+        if (array_key_exists('start_date', $values)) {
+            if (!is_string($values['start_date']) || !is_string($values['start_time'] ?? null)) throw new InvalidArgumentException('Informe a data no formato dd/mm/aaaa e o horário de início.');
+            $input = $values['start_date'] . ' ' . $values['start_time'];
+            $date = DateTimeImmutable::createFromFormat('!d/m/Y H:i', $input, new DateTimeZone('America/Sao_Paulo'));
+            if (!$date || $date->format('d/m/Y H:i') !== $input) throw new InvalidArgumentException('Informe uma data válida no formato dd/mm/aaaa e o horário de início.');
+            $values['start'] = $date->format('Y-m-d\TH:i');
+        }
+        if (array_key_exists('duration', $values)) {
+            if (!is_string($values['duration']) || !in_array($values['duration'], ['15', '30', '60', '120', '180'], true)) throw new InvalidArgumentException('Selecione uma duração válida para a reunião.');
+            $start = is_string($values['start'] ?? null) ? DateTimeImmutable::createFromFormat('!Y-m-d\TH:i', $values['start'], new DateTimeZone('America/Sao_Paulo')) : false;
+            if (!$start || $start->format('Y-m-d\TH:i') !== $values['start']) throw new InvalidArgumentException('Informe uma data e horário de início válidos.');
+            $values['end'] = $start->modify('+' . $values['duration'] . ' minutes')->format('Y-m-d\TH:i');
+        }
         foreach (['title', 'start', 'end', 'location', 'guests'] as $field) {
             if (!is_string($values[$field] ?? null)) throw new InvalidArgumentException('Confira os campos da reunião.');
         }

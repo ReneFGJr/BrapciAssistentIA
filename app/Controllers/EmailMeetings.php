@@ -34,6 +34,11 @@ class EmailMeetings extends BaseController
             if ($service === null || empty($service['can_write'])) throw new GoogleCalendarException('Conecte novamente o Google Agenda particular e autorize a criação de eventos.');
             $values = [];
             foreach (['title', 'start', 'end', 'location', 'guests', 'meet'] as $field) $values[$field] = $this->request->getPost($field) ?? '';
+            if ($this->request->getPost('duration') !== null) $values['duration'] = $this->request->getPost('duration');
+            if ($this->request->getPost('start_date') !== null) {
+                $values['start_date'] = $this->request->getPost('start_date');
+                $values['start_time'] = $this->request->getPost('start_time');
+            }
             $key = $this->request->getPost('request_key');
             $payload = EmailMeeting::payload($message, $values, site_url('email/account') . '?message=' . $messageId);
             $model = new EmailMeetingModel();

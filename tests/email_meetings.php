@@ -20,6 +20,12 @@ $day = (new DateTimeImmutable('tomorrow', new DateTimeZone('America/Sao_Paulo'))
 $values = ['title' => 'Reunião <teste>', 'start' => $day . 'T09:00', 'end' => $day . 'T10:00', 'location' => 'Sala A', 'guests' => 'guest@example.test, GUEST@example.test; other@example.test', 'meet' => '1'];
 $reference = 'https://example.test/sudo/index.php/email/account?message=' . $original['id'];
 $payload = EmailMeeting::payload($original, $values, $reference);
+foreach (['15', '30', '60', '120', '180'] as $duration) {
+    $timed = EmailMeeting::payload($original, array_replace($values, ['start' => $day . 'T23:45', 'duration' => $duration]), $reference);
+    verifyService(strtotime($timed['end']['dateTime']) - strtotime($timed['start']['dateTime']) === (int) $duration * 60, 'Selected duration computes end correctly across midnight');
+}
+try { EmailMeeting::payload($original, $values + ['duration' => '999'], $reference); throw new LogicException('Invalid duration accepted'); }
+catch (InvalidArgumentException $e) {}
 verifyService($payload['start']['dateTime'] === $day . 'T09:00:00-03:00' && $payload['end']['timeZone'] === 'America/Sao_Paulo', 'Brasilia times sent with UTC offset');
 verifyService(count($payload['attendees']) === 2 && $payload['conferenceData']['createRequest']['conferenceSolutionKey']['type'] === 'hangoutsMeet', 'Meet optional and guests deduplicated');
 verifyService($payload['source']['url'] === $reference && str_contains($payload['description'], $reference) && !str_contains($payload['description'], '<img'), 'Event retains safe email reference and context');
