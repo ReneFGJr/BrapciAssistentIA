@@ -44,6 +44,7 @@ $start = (new \DateTimeImmutable('tomorrow 09:00', new \DateTimeZone('America/Sa
         const data = new FormData(form);
         const button = form.querySelector('button');
         button.disabled = true; form.inert = true; form.setAttribute('aria-busy', 'true'); busy.hidden = false;
+        window.setOperationStatus?.('Agendando reunião no Google…', 'info');
         let created = false;
         const status = (message, error = false) => {
             result.hidden = false; result.textContent = message; result.className = 'alert alert-' + (error ? 'danger' : 'success');

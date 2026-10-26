@@ -48,6 +48,7 @@ class EmailMeeting
 
     public static function safeUrl(?string $url, string $host): string
     {
-        return is_string($url) && parse_url($url, PHP_URL_SCHEME) === 'https' && parse_url($url, PHP_URL_HOST) === $host ? $url : '';
+        $hosts = $host === 'www.google.com' ? ['www.google.com', 'calendar.google.com'] : [$host];
+        return is_string($url) && parse_url($url, PHP_URL_SCHEME) === 'https' && in_array(parse_url($url, PHP_URL_HOST), $hosts, true) ? $url : '';
     }
 }

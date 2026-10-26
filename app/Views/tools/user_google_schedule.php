@@ -48,7 +48,7 @@
                     <li>Em <strong>Clientes / Credenciais</strong>, crie um <strong>ID do cliente OAuth 2.0</strong> do tipo <strong>Aplicativo da Web</strong>.</li>
                     <li>Adicione exatamente este URI aos <strong>URIs de redirecionamento autorizados</strong>:<br><code class="text-info" style="overflow-wrap:anywhere"><?= esc($redirectUri) ?></code></li>
                     <li>Copie o Client ID e o Client Secret para o formulário e salve.</li>
-                    <li>Clique em <strong>Conectar com Google</strong>, selecione a conta e permita a leitura dos eventos. Depois, abra a agenda particular.</li>
+                    <li>Clique em <strong>Conectar com Google</strong>, selecione a conta e permita ler e criar eventos. Depois, abra a agenda particular ou agende uma reunião a partir de um e-mail.</li>
                 </ol>
                 <?php if (!$validRedirect): ?><p><strong>Endereço local:</strong> o Google não aceita <code class="text-info">http://assistentia</code> como retorno OAuth. Disponibilize o sistema em <code class="text-info">http://localhost</code> (com a porta/caminho corretos) ou em um domínio HTTPS válido. Configure <code class="text-info">app.baseURL</code> no .env, acesse o sistema por esse endereço, entre novamente e cadastre no Google o URI atualizado mostrado acima.</p><?php endif; ?>
                 <h3 class="h6">Produção: cip.brapci.inf.br/sudo</h3>
