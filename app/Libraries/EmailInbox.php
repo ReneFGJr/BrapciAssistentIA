@@ -44,12 +44,14 @@ class EmailInbox
                 $structure = imap_fetchstructure($stream, $number);
                 if (!$structure) throw new EmailInboxException('Falha ao consultar o conteúdo da mensagem.');
                 $body = $this->body($stream, $number, $structure);
+                $html = $this->html($stream, $number, $structure);
                 $parsedDate = isset($info->date) ? strtotime($info->date) : false;
                 $messages->import((int) $account['id'], [
                     'remote_key' => $key, 'message_id' => $info->message_id ?? null,
                     'email_from' => self::decodeHeader($info->from ?? ''), 'email_to' => self::decodeHeader($info->to ?? ''),
                     'email_cc' => self::decodeHeader($parsedHeader->ccaddress ?? ''), 'email_reply_to' => self::decodeHeader($parsedHeader->reply_toaddress ?? ''),
                     'email_title' => self::decodeHeader($info->subject ?? '(Sem assunto)'), 'email_context' => $body,
+                    'email_html' => $html, 'email_html_loaded' => 1,
                     'email_data' => $parsedDate === false ? null : gmdate('Y-m-d H:i:s', $parsedDate),
                     'email_status' => !empty($info->flagged) ? 2 : (!empty($info->seen) ? 1 : 0),
                     'size_bytes' => (int) ($info->size ?? 0), 'has_attachments' => $this->hasAttachments($structure) ? 1 : 0,
@@ -82,19 +84,25 @@ class EmailInbox
         return false;
     }
 
-    private function body($stream, int $number, object $part, string $section = ''): string
+    public function html($stream, int $number, object $part): string
+    {
+        return $this->body($stream, $number, $part, '', true);
+    }
+
+    private function body($stream, int $number, object $part, string $section = '', bool $html = false): string
     {
         if (strtolower($part->disposition ?? '') === 'attachment') return '';
         if ((int) $part->type === 1) {
             $texts = [];
             foreach ($part->parts ?? [] as $index => $child) {
-                $text = $this->body($stream, $number, $child, $section === '' ? (string) ($index + 1) : $section . '.' . ($index + 1));
+                $text = $this->body($stream, $number, $child, $section === '' ? (string) ($index + 1) : $section . '.' . ($index + 1), $html);
                 if ($text !== '') $texts[] = $text;
                 if (strtoupper($part->subtype ?? '') === 'ALTERNATIVE' && $text !== '') return $text;
             }
             return implode("\n\n", $texts);
         }
         if ((int) $part->type !== 0) return '';
+        if ($html && strtoupper($part->subtype ?? '') !== 'HTML') return '';
         $raw = $section === '' ? imap_body($stream, $number, FT_PEEK) : imap_fetchbody($stream, $number, $section, FT_PEEK);
         if ($raw === false) throw new EmailInboxException('Falha ao baixar conteúdo da mensagem.');
         $raw = match ((int) $part->encoding) { 3 => base64_decode($raw) ?: '', 4 => quoted_printable_decode($raw), default => $raw };
@@ -102,7 +110,7 @@ class EmailInbox
         foreach ($part->parameters ?? [] as $parameter) if (strtolower($parameter->attribute) === 'charset') $charset = $parameter->value;
         try { $raw = mb_convert_encoding($raw, 'UTF-8', $charset); }
         catch (\ValueError $e) { $raw = mb_convert_encoding($raw, 'UTF-8', 'UTF-8'); }
-        if (strtoupper($part->subtype ?? '') === 'HTML') {
+        if (!$html && strtoupper($part->subtype ?? '') === 'HTML') {
             $raw = preg_replace('~<(script|style)\b[^>]*>.*?</\1>~is', '', $raw);
             $raw = preg_replace('~<(br|/p|/div)\b[^>]*>~i', "\n", $raw);
             $raw = html_entity_decode(strip_tags($raw), ENT_QUOTES | ENT_HTML5, 'UTF-8');

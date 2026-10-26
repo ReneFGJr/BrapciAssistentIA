@@ -139,15 +139,11 @@ foreach ($meetings ?? [] as $meeting) $meetingsByMessage[$meeting['message_id']]
                     <p class="small text-info mb-2"><i class="bi bi-inbox" aria-hidden="true"></i> Conta: <?= esc($messageAccount['email_user']) ?></p>
                     <div class="mail-envelope"><div><strong>De:</strong> <?= esc($message['email_from']) ?></div><div><strong>Para:</strong> <?= esc($message['email_to']) ?></div><time><?= esc($message['email_data'] ?? 'Data indisponível') ?><?= $message['email_data'] ? ' UTC' : '' ?></time></div>
                     <div class="mail-content-layout">
-                    <?php
-                    // Reflow hard-wrapped prose for display, without changing stored content.
-                    $bodyParagraphs = preg_split('/\n[\t ]*\n+/', str_replace(["\r\n", "\r"], "\n", $message['email_context']));
-                    $displayBody = implode("\n\n", array_map(static function (string $paragraph): string {
-                        if (preg_match('/^[\t ]*(?:[-*•>]|\d+[.)])[\t ]/mu', $paragraph) || preg_match('/^[\t ]*[*•-][\t ]*$/mu', $paragraph)) return $paragraph;
-                        return preg_replace('/[\t ]*\n[\t ]*/', ' ', $paragraph);
-                    }, $bodyParagraphs));
-                    ?>
-                    <div class="mail-body"><?= esc($displayBody) ?></div>
+                    <div class="mail-body-content">
+                        <?php if (empty($message['email_html_loaded'])): ?><button type="button" class="btn btn-sm btn-outline-info mt-3 mail-html-fetch" data-account="<?= (int) $message['email_user_id'] ?>" data-message="<?= (int) $message['id'] ?>">Carregar formatação HTML original</button><?php endif; ?>
+                        <iframe class="mail-html-frame" title="Conteúdo HTML do e-mail" sandbox="allow-popups allow-popups-to-escape-sandbox" referrerpolicy="no-referrer" data-available="<?= !empty($message['email_html']) ? '1' : '0' ?>" data-html-url="<?= site_url('email/account/' . (int) $message['email_user_id'] . '/messages/' . (int) $message['id'] . '/html') ?>" style="width:100%;height:65vh;border:0;background:white;margin-top:20px" hidden></iframe>
+                        <div class="mail-body"><?= esc($message['email_context']) ?></div>
+                    </div>
                     <div class="mail-files" data-files-message="<?= (int) $message['id'] ?>" aria-label="Anexos da mensagem">
                         <h3 class="h6"><i class="bi bi-paperclip" aria-hidden="true"></i> Anexos</h3>
                         <div class="mail-files-list" aria-live="polite"><button type="button" class="btn btn-sm btn-outline-light mail-load-files" data-message="<?= (int) $message['id'] ?>">Consultar anexos</button></div>
@@ -438,6 +434,34 @@ foreach ($meetings ?? [] as $meeting) $meetingsByMessage[$meeting['message_id']]
         shell.classList.remove('reading');
         selected = null;
     }
+    function loadStoredHtml(row) {
+        const panel = document.getElementById('message-' + row.dataset.message);
+        const frame = panel.querySelector('.mail-html-frame');
+        if (frame.dataset.available !== '1' || frame.hasAttribute('src')) return;
+        frame.addEventListener('load', () => {
+            panel.querySelector('.mail-body').hidden = true;
+            frame.hidden = false;
+        }, {once: true});
+        frame.src = frame.dataset.htmlUrl;
+    }
+    shell.querySelectorAll('.mail-html-fetch').forEach(button => button.addEventListener('click', async () => {
+        if (working) return;
+        const row = rows.find(item => item.dataset.message === button.dataset.message);
+        button.disabled = true; cancelRead();
+        setBusy('Recuperando a formatação original do e-mail…');
+        try {
+            const data = await post('/messages/' + button.dataset.message + '/html', {}, () => true, accountBase + '/' + button.dataset.account);
+            if (data.has_html) {
+                document.getElementById('message-' + button.dataset.message).querySelector('.mail-html-frame').dataset.available = '1';
+                loadStoredHtml(row); button.hidden = true;
+                notify('Formatação HTML carregada. Imagens externas permanecem bloqueadas.', 'success');
+            } else {
+                button.hidden = true;
+                notify('Esta mensagem possui somente a versão em texto.');
+            }
+        } catch (error) { button.disabled = false; notify(error.message, 'error'); }
+        finally { setBusy(); scheduleRead(); }
+    }));
     shell.querySelectorAll('.mail-load-files').forEach(button => button.addEventListener('click', () => {
         const row = rows.find(item => item.dataset.message === button.dataset.message);
         if (row) loadAttachments(row);
@@ -448,6 +472,7 @@ foreach ($meetings ?? [] as $meeting) $meetingsByMessage[$meeting['message_id']]
         rows.forEach(item => { item.classList.toggle('selected', item === row); item.setAttribute('aria-pressed', String(item === row)); });
         placeholder.hidden = true;
         shell.classList.add('reading');
+        loadStoredHtml(row);
         apply(true);
         scheduleRead();
     }));

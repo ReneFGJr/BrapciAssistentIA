@@ -8,6 +8,8 @@ require APPPATH . 'Database/Migrations/2026-10-15-000005_AddEmailServerDeleted.p
 (new App\Database\Migrations\AddEmailServerDeleted(Config\Database::forge($db)))->up();
 require APPPATH . 'Database/Migrations/2026-10-26-000001_AddEmailReplyHeaders.php';
 (new App\Database\Migrations\AddEmailReplyHeaders(Config\Database::forge($db)))->up();
+require APPPATH . 'Database/Migrations/2026-10-26-000004_AddEmailHtml.php';
+(new App\Database\Migrations\AddEmailHtml(Config\Database::forge($db)))->up();
 $id = $emails->saveFor(null, $data, $actor);
 $connection = $emails->connection($id, $actor);
 verifyService($connection['password'] === $data['pass_user'], 'Server-only decrypted connection');

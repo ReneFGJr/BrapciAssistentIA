@@ -8,6 +8,34 @@ use Throwable;
 
 class Email extends BaseController
 {
+    public function html(int $accountId, int $messageId)
+    {
+        $message = (new \App\Models\EmailUserRowModel())->findOwned($accountId, $messageId, (array) session('auth_user'));
+        return $this->response->setContentType('text/html', 'UTF-8')->setHeader('Cache-Control', 'private, no-store')
+            ->setHeader('X-Content-Type-Options', 'nosniff')->setHeader('Referrer-Policy', 'no-referrer')
+            ->setHeader('Content-Security-Policy', "sandbox allow-popups allow-popups-to-escape-sandbox; default-src 'none'; script-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'; frame-ancestors 'self'")
+            ->setBody(\App\Libraries\EmailHtml::document($message['email_html'] ?? ''));
+    }
+
+    public function fetchHtml(int $accountId, int $messageId)
+    {
+        try {
+            $actor = (array) session('auth_user');
+            $model = new \App\Models\EmailUserRowModel();
+            $message = $model->findOwned($accountId, $messageId, $actor);
+            if (empty($message['email_html_loaded'])) {
+                $account = (new EmailUserModel())->connection($accountId, $actor);
+                $result = (new \App\Libraries\EmailAttachments())->fetch($account, $message, null, true);
+                if (!$model->where('user_id', (string) $actor['id'])->update($messageId, ['email_html' => $result['html'], 'email_html_loaded' => 1])) throw new \RuntimeException('Falha ao salvar HTML.');
+                $message['email_html'] = $result['html'];
+            }
+            return $this->response->setHeader('Cache-Control', 'no-store')->setJSON(['has_html' => !empty($message['email_html']), 'csrf' => csrf_hash()]);
+        } catch (PageNotFoundException $e) { throw $e;
+        } catch (Throwable $e) {
+            return $this->response->setStatusCode(502)->setHeader('Cache-Control', 'no-store')->setJSON(['error' => 'Não foi possível recuperar a formatação original. Confira se a conta está ativa e se a mensagem ainda existe no servidor.', 'csrf' => csrf_hash()]);
+        }
+    }
+
     public function prefer(int $id)
     {
         try {

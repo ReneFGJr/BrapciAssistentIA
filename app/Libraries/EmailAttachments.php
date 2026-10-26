@@ -42,7 +42,7 @@ class EmailAttachments
         return $result;
     }
 
-    public function fetch(array $account, array $message, ?string $section = null): array
+    public function fetch(array $account, array $message, ?string $section = null, bool $html = false): array
     {
         if (!function_exists('imap_open')) throw new RuntimeException('Extensão IMAP indisponível.');
         if (!preg_match('/^[a-zA-Z0-9.-]+$/D', $account['mail_user']) || !in_array($account['protocol'], ['imap', 'pop3'], true) || !in_array($account['security'], ['ssl', 'tls', 'none'], true)) throw new RuntimeException('Configuração de conexão inválida.');
@@ -72,6 +72,11 @@ class EmailAttachments
             if (!$number) throw new RuntimeException('A mensagem não está mais disponível nesta caixa no servidor.');
             $structure = imap_fetchstructure($stream, $number);
             if (!$structure) throw new RuntimeException('Não foi possível consultar a estrutura da mensagem.');
+            if ($html) {
+                $overview = imap_fetch_overview($stream, (string) $number, 0);
+                if (!$overview || ($overview[0]->size ?? 0) > 10 * 1024 * 1024) throw new RuntimeException('A mensagem excede o limite de 10 MB ou não está disponível.');
+                return ['html' => (new EmailInbox())->html($stream, $number, $structure)];
+            }
             $parts = self::parts($structure);
             if ($section === null) return array_map(static fn($part) => array_diff_key($part, ['encoding' => true]), $parts);
             foreach ($parts as $part) {
