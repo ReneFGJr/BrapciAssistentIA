@@ -159,16 +159,14 @@ class Email extends BaseController
             : (new EmailUserModel())->findOwned($id, $actor);
         $requestedMessage = $this->request->getGet('message');
         $openMessage = is_string($requestedMessage) && ctype_digit($requestedMessage) && (int) $requestedMessage > 0;
-        $loadInbox = session()->get('email_inbox_load_requested') === true;
-        session()->remove('email_inbox_load_requested');
-        $messages = [];
-        if ($loadInbox) {
-            $messages = (new \App\Models\EmailUserRowModel())->unified($actor);
-        } elseif ($openMessage) {
+        if ($openMessage) {
             // A direct message link loads only that saved message, never the whole inbox.
             $message = (new \App\Models\EmailUserRowModel())->forUser($actor)->where('id', (int) $requestedMessage)->first();
             if ($message === null) throw PageNotFoundException::forPageNotFound();
             $messages = [$message];
+        } else {
+            // Show the user's imported messages without contacting the mail server.
+            $messages = (new \App\Models\EmailUserRowModel())->unified($actor);
         }
         $sentMessages = $messages === [] ? [] : (new \App\Models\EmailSentModel())->forUser($actor);
         $calendarActive = false;
@@ -177,7 +175,7 @@ class Email extends BaseController
             $calendarActive = !empty($privateCalendar['connected']) || (new \App\Models\UserServiceModel())->googleSummary($actor) !== null;
         } catch (Throwable $e) { /* Email remains available if calendar credentials need repair. */ }
         return view('main', ['content' => view('email/account', ['account' => $account, 'accounts' => $accounts, 'messages' => $messages, 'sentMessages' => $sentMessages,
-            'calendarActive' => $calendarActive, 'inboxAwaitingUpdate' => !$loadInbox && !$openMessage,
+            'calendarActive' => $calendarActive,
             'meetings' => $messages === [] ? [] : (new \App\Models\EmailMeetingModel())->forUser($actor),
             'spamSenders' => (new \App\Models\EmailSpamSenderModel())->forUser($actor)])]);
     }
@@ -206,7 +204,6 @@ class Email extends BaseController
                 ->with('error', 'A caixa de e-mail somente é consultada ao clicar em Atualizar.');
         }
         $actor = (array) session('auth_user');
-        session()->set('email_inbox_load_requested', true);
         $accounts = (new EmailUserModel())->forUser($actor);
         $count = 0;
         $failed = 0;
@@ -232,7 +229,6 @@ class Email extends BaseController
                 ->with('error', 'A caixa de e-mail somente é consultada ao clicar em Atualizar.');
         }
         if ($id === 0) return $this->syncAll();
-        session()->set('email_inbox_load_requested', true);
         $stage = 'ambiente PHP';
         try {
             if (!function_exists('imap_open')) throw new \App\Exceptions\EmailInboxException('A extensão IMAP não está disponível no PHP que atende o site em produção. Habilite-a nesse PHP e reinicie o serviço web/PHP.');
