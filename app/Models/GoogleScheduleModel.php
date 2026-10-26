@@ -51,6 +51,15 @@ class GoogleScheduleModel extends Model
             throw $exception;
         }
     }
+    public function storeCreated(array $service, array $event): void
+    {
+        $existing = $this->where('service_id', $service['id'])->where('user_id', $service['user_id'])->where('google_event_id', $event['google_event_id'])->first();
+        $now = gmdate('Y-m-d H:i:s');
+        $data = $event + ['service_id' => $service['id'], 'user_id' => $service['user_id'], 'calendar_id' => $service['email'], 'synced_at' => $now, 'updated_at' => $now];
+        $builder = $this->db->table($this->table);
+        $saved = $existing === null ? $builder->insert($data + ['created_at' => $now]) : $builder->where('id', $existing['id'])->where('user_id', $service['user_id'])->update($data);
+        if (!$saved) throw new RuntimeException('A reunião foi criada no Google, mas a agenda local não foi atualizada. Atualize a agenda para consultá-la.');
+    }
     public function assignSubject(int $id, ?int $subjectId, array $service): bool
     {
         $event = $this->where('id', $id)->where('service_id', $service['id'])

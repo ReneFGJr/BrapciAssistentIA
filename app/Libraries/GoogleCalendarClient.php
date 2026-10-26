@@ -4,6 +4,32 @@ use DateTimeImmutable;
 use DateTimeZone;
 class GoogleCalendarClient
 {
+    public function createMeeting(array $credentials, array $payload): array
+    {
+        if (empty($credentials['access_token']) || empty($credentials['can_write'])) throw new GoogleCalendarException('Conecte novamente o Google Agenda particular e autorize a criação de eventos. API key ou permissão somente de leitura não permite agendar reuniões.');
+        $endpoint = 'https://www.googleapis.com/calendar/v3/calendars/' . rawurlencode($credentials['email']) . '/events';
+        $options = ['headers' => ['Authorization' => 'Bearer ' . $credentials['access_token'], 'Accept' => 'application/json'],
+            'connect_timeout' => 5, 'timeout' => 20, 'http_errors' => false, 'allow_redirects' => false];
+        try {
+            // Reuse the same event ID on retry, including after a network timeout.
+            $client = service('curlrequest');
+            $response = $client->get($endpoint . '/' . rawurlencode($payload['id']), $options);
+            if ($response->getStatusCode() === 404) {
+                $response = $client->post($endpoint, $options + ['json' => $payload,
+                    'query' => ['conferenceDataVersion' => 1, 'sendUpdates' => empty($payload['attendees']) ? 'none' : 'all']]);
+                if ($response->getStatusCode() === 409) $response = $client->get($endpoint . '/' . rawurlencode($payload['id']), $options);
+            }
+            $code = $response->getStatusCode();
+            $body = json_decode($response->getBody(), true);
+        } catch (\Throwable $e) {
+            throw new GoogleCalendarException('Não foi possível confirmar a criação no Google. Tente novamente neste formulário para consultar a mesma reunião sem duplicá-la.');
+        }
+        if (in_array($code, [401, 403], true)) throw new GoogleCalendarException('O Google recusou a criação da reunião. Reconecte a agenda particular com permissão para criar eventos e confira se a conta permite usar Meet.');
+        if (!in_array($code, [200, 201], true) || !is_array($body) || ($body['id'] ?? '') !== $payload['id'] || ($body['status'] ?? '') === 'cancelled') throw new GoogleCalendarException('O Google não confirmou a reunião. Confira os dados e tente novamente neste formulário.');
+        if (($body['extendedProperties']['private']['email_message_id'] ?? '') !== $payload['extendedProperties']['private']['email_message_id']) throw new GoogleCalendarException('A referência da reunião retornada pelo Google é inválida.');
+        return $body;
+    }
+
     public function fetch(array $credentials): array
     {
         $events = [];

@@ -16,6 +16,8 @@ $replyHistory = static function (array $message) use ($repliesByMessage): array 
     return $repliesByMessage[$key] ?? [];
 };
 $replyDraft = (array) session()->getFlashdata('email_reply_draft');
+$meetingsByMessage = [];
+foreach ($meetings ?? [] as $meeting) $meetingsByMessage[$meeting['message_id']][] = $meeting;
 ?>
 <style>
 .mail-shell{background:#172131;border:1px solid #354258;border-radius:14px;overflow:hidden;color:#ecf1fa}.mail-toolbar{padding:20px;display:flex;justify-content:space-between;align-items:center;gap:16px;border-bottom:1px solid #354258;flex-wrap:wrap}.mail-layout{display:grid;grid-template-columns:minmax(260px,350px) minmax(0,1fr);min-height:65vh}.mail-list{border-right:1px solid #354258;min-width:0}.mail-search{padding:16px;background:#121c2c}.mail-search input{background:#202e43;border-color:#43516a;color:white}.mail-search input::placeholder{color:#aab8cd}.mail-rows{max-height:65vh;overflow:auto}.mail-row{display:block;width:100%;background:transparent;color:#bec9db;border:0;border-bottom:1px solid #354258;text-align:left;padding:10px 16px;line-height:1.25;cursor:pointer}.mail-row:hover,.mail-row.selected{background:#2a3b5b}.mail-row.selected{box-shadow:inset 3px 0 #9aaaff}.mail-row.unread{color:#fff}.mail-row.unread .mail-subject,.mail-row.unread .mail-from{font-weight:700}.mail-row-top{display:flex;gap:12px;font-size:12px;line-height:1.25;margin-bottom:3px}.mail-from{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mail-subject,.mail-preview{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mail-subject{font-size:14px;line-height:1.25;margin-bottom:3px}.mail-preview{font-size:12px;color:#aab8cd;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.25;overflow-wrap:anywhere}.mail-reader{min-width:0;background:#1b273a}.mail-placeholder{display:flex;align-items:center;justify-content:center;flex-direction:column;min-height:60vh;color:#acbbd4;text-align:center;padding:25px}.mail-placeholder i{font-size:48px;margin-bottom:20px}.mail-message{padding:28px;max-height:85vh;overflow:auto}.mail-message h2{font-size:24px;overflow-wrap:anywhere;margin:26px 0}.mail-envelope{border-bottom:1px solid #3c4960;padding-bottom:24px;color:#b8c5d9;font-size:13px;line-height:1.9;overflow-wrap:anywhere}.mail-body{white-space:pre-wrap;overflow-wrap:break-word;word-break:normal;min-width:0;width:100%;max-width:none;font-family:var(--font-interface,"Segoe UI",Arial,sans-serif);font-size:18px;line-height:1.65;padding-top:28px}.mail-status-form{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.mail-status-form select{max-width:170px;background:#26364f;color:#fff;border-color:#4a5972}.mail-bottom{padding:14px 20px;border-top:1px solid #354258;font-size:11px;color:#acbbd4}.mail-shell [hidden]{display:none!important}.mail-page-nav{padding:12px}.mail-page-nav .pagination{margin:0;flex-wrap:wrap}.mail-back-button{display:none}.mail-row:focus-visible{outline:2px solid #b2bdff;outline-offset:-3px}.mail-tabs{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}.mail-tabs button{font-size:11px}.mail-attachment{padding:12px;background:#293b57;border-radius:8px;margin-top:15px;font-size:12px}
@@ -60,6 +62,7 @@ $replyDraft = (array) session()->getFlashdata('email_reply_draft');
                         <?= esc($message['email_title'] ?: '(Sem assunto)') ?>
                     </span>
                     <?php if ($replyHistory($message) !== []): ?><span class="mail-preview text-success"><i class="bi bi-reply-fill" aria-hidden="true"></i> Já respondido</span><?php endif; ?>
+                    <?php if (!empty($meetingsByMessage[$message['id']])): ?><span class="mail-preview text-info"><i class="bi bi-calendar-check" aria-hidden="true"></i> Reunião vinculada</span><?php endif; ?>
                     <?php if ($message['email_data']): ?>
                         <?php $receivedAt = new \DateTimeImmutable($message['email_data'], new \DateTimeZone('UTC')); ?>
                         <time class="mail-preview" datetime="<?= esc($receivedAt->format(DATE_ATOM), 'attr') ?>" title="Horário de Brasília"><?= esc($receivedAt->setTimezone(new \DateTimeZone('America/Sao_Paulo'))->format('d/m/Y H:i')) ?></time>
@@ -79,6 +82,7 @@ $replyDraft = (array) session()->getFlashdata('email_reply_draft');
                 <article class="mail-message" id="message-<?= (int) $message['id'] ?>" hidden>
                     <button type="button" class="btn btn-sm btn-outline-light mail-back-button mb-3"><i class="bi bi-arrow-left" aria-hidden="true"></i> Voltar às mensagens</button>
                     <div class="mail-actions">
+                    <?php if (!empty($calendarActive)): ?><a class="btn btn-sm btn-outline-info flex-shrink-0" href="<?= site_url('email/account/' . (int) $message['email_user_id'] . '/messages/' . (int) $message['id'] . '/meeting') ?>"><i class="bi bi-calendar-plus" aria-hidden="true"></i> Agendar reunião</a><?php endif; ?>
                     <?php foreach ([2 => ['Importante', 'warning'], 3 => ['Urgente', 'danger']] as $priority => [$priorityLabel, $priorityColor]): ?>
                         <form class="mail-priority-form" method="post" action="<?= site_url('email/account/' . $messageAccount['id'] . '/messages/' . $message['id'] . '/status') ?>">
                             <?= csrf_field() ?><input type="hidden" name="email_status" value="<?= $priority ?>">
@@ -108,6 +112,16 @@ $replyDraft = (array) session()->getFlashdata('email_reply_draft');
                         <button type="submit" class="btn btn-primary" title="Enviar resposta por esta conta" aria-label="Enviar resposta por esta conta"><i class="bi bi-send" aria-hidden="true"></i></button>
                     </form>
                     <h2><?= esc($message['email_title'] ?: '(Sem assunto)') ?></h2>
+                    <?php foreach ($meetingsByMessage[$message['id']] ?? [] as $meeting): ?>
+                    <?php $meetingData = json_decode($meeting['payload'], true); ?>
+                    <section class="mail-reply-compose my-3" aria-label="Reunião vinculada">
+                        <h3 class="h6 text-info"><i class="bi bi-calendar-check" aria-hidden="true"></i> Reunião criada no Google Agenda</h3>
+                        <p><?= esc($meetingData['summary']) ?><br><?= esc((new \DateTimeImmutable($meetingData['start']['dateTime']))->setTimezone(new \DateTimeZone('America/Sao_Paulo'))->format('d/m/Y H:i')) ?> até <?= esc((new \DateTimeImmutable($meetingData['end']['dateTime']))->setTimezone(new \DateTimeZone('America/Sao_Paulo'))->format('d/m/Y H:i')) ?> (Brasília)</p>
+                        <?php if (!empty($meetingData['location'])): ?><p>Local: <?= esc($meetingData['location']) ?></p><?php endif; ?>
+                        <?php if ($meeting['event_url']): ?><a class="btn btn-sm btn-outline-info" target="_blank" rel="noopener noreferrer" href="<?= esc($meeting['event_url'], 'attr') ?>">Abrir evento no Google</a><?php endif; ?>
+                        <?php if ($meeting['meet_url']): ?><a class="btn btn-sm btn-outline-light" target="_blank" rel="noopener noreferrer" href="<?= esc($meeting['meet_url'], 'attr') ?>">Entrar no Meet</a><?php elseif (isset($meetingData['conferenceData'])): ?><p class="small mt-2">Consulte o evento no Google para verificar o link Meet.</p><?php endif; ?>
+                    </section>
+                    <?php endforeach; ?>
                     <?php $responses = $replyHistory($message); ?>
                     <?php if ($responses !== []): ?>
                     <section class="mail-reply-compose my-3" aria-label="Respostas enviadas">
@@ -477,6 +491,17 @@ $replyDraft = (array) session()->getFlashdata('email_reply_draft');
         }
     }
     query.addEventListener('input', () => apply());
+    const referencedMessage = new URLSearchParams(window.location.search).get('message');
+    if (referencedMessage && /^\d+$/.test(referencedMessage)) {
+        const row = rows.find(item => item.dataset.message === referencedMessage);
+        if (row) {
+            if (row.hidden) {
+                const folder = row.dataset.status === '4' ? '4' : 'all';
+                shell.querySelector('[data-filter="' + folder + '"]').click();
+            }
+            row.click();
+        }
+    }
     document.addEventListener('DOMContentLoaded', () => {
         let saved;
         try {

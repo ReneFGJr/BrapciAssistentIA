@@ -23,7 +23,7 @@ $pending = ['state' => bin2hex(random_bytes(32)), 'verifier' => bin2hex(random_b
 $url = GoogleCalendarOAuth::authorizationUrl($connection, $pending);
 parse_str(parse_url($url, PHP_URL_QUERY), $query);
 verifyService($query['scope'] === GoogleCalendarOAuth::SCOPE && $query['access_type'] === 'offline'
-    && $query['code_challenge_method'] === 'S256' && !str_contains($url, 'test-secret'), 'Consent read-only with PKCE');
+    && $query['code_challenge_method'] === 'S256' && !str_contains($url, 'test-secret'), 'Consent for event reading and creation with PKCE');
 verifyService(GoogleCalendarOAuth::validState($pending, $pending['state'], $actor, $connection), 'Valid callback');
 verifyService(!GoogleCalendarOAuth::validState($pending, 'wrong', $actor, $connection), 'Reject forged state');
 verifyService(!GoogleCalendarOAuth::validState($pending, $pending['state'], $other, $connection), 'Reject different local user');
@@ -59,6 +59,8 @@ $http->body = ['access_token' => 'renewed-test', 'expires_in' => 3600];
 $authorized = $oauth->access($actor);
 verifyService($authorized['access_token'] === 'renewed-test' && $authorized['email'] === 'primary', 'Expired access refreshed, primary calendar');
 verifyService($private->connection($actor)['refresh_token'] === 'refresh-test', 'Refresh token retained');
+verifyService($authorized['can_write'] && $private->summary($actor)['can_write'], 'Write permission persisted across token refresh');
+verifyService(!GoogleCalendarOAuth::canWrite(GoogleCalendarOAuth::READ_SCOPE), 'Legacy read-only grants cannot create events');
 $last = end($http->calls);
 verifyService($last[2]['form_params']['grant_type'] === 'refresh_token', 'Refresh exchange used');
 $http->body = ['accessRole' => 'owner', 'timeZone' => 'America/Sao_Paulo', 'items' => [[

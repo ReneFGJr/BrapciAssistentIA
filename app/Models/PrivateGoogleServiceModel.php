@@ -41,7 +41,8 @@ class PrivateGoogleServiceModel extends Model
         $data = $this->connection($actor);
         if ($data === null) return null;
         return array_intersect_key($data, array_flip(['id', 'email', 'client_id', 'created_at', 'updated_at']))
-            + ['connected' => !empty($data['refresh_token']), 'has_secret' => $data['client_secret'] !== ''];
+            + ['connected' => !empty($data['refresh_token']), 'has_secret' => $data['client_secret'] !== '',
+                'can_write' => \App\Libraries\GoogleCalendarOAuth::canWrite((string) ($data['scope'] ?? ''))];
     }
 
     private function encrypt(array $data): string
@@ -69,7 +70,7 @@ class PrivateGoogleServiceModel extends Model
         }
         $data = ['email' => $email, 'client_id' => $clientId, 'client_secret' => $secret];
         if ($old !== null && $old['email'] === $email && $old['client_id'] === $clientId && $old['client_secret'] === $secret) {
-            $data += array_intersect_key($old, array_flip(['access_token', 'refresh_token', 'expires_at']));
+            $data += array_intersect_key($old, array_flip(['access_token', 'refresh_token', 'expires_at', 'scope']));
         }
         $now = gmdate('Y-m-d H:i:s');
         $builder = $this->db->table($this->table);
@@ -89,7 +90,8 @@ class PrivateGoogleServiceModel extends Model
         if (!is_string($tokens['access_token'] ?? null) || $tokens['access_token'] === '' || (int) ($tokens['expires_in'] ?? 0) <= 0) {
             throw new RuntimeException('Resposta OAuth inválida.');
         }
-        $data = array_intersect_key($current, array_flip(['email', 'client_id', 'client_secret', 'refresh_token']));
+        $data = array_intersect_key($current, array_flip(['email', 'client_id', 'client_secret', 'refresh_token', 'scope']));
+        if (isset($tokens['scope']) && is_string($tokens['scope'])) $data['scope'] = $tokens['scope'];
         $data['access_token'] = $tokens['access_token'];
         $data['expires_at'] = time() + (int) $tokens['expires_in'];
         if (!empty($tokens['refresh_token']) && is_string($tokens['refresh_token'])) $data['refresh_token'] = $tokens['refresh_token'];

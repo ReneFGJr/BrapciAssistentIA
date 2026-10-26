@@ -131,7 +131,14 @@ class Email extends BaseController
             : (new EmailUserModel())->findOwned($id, $actor);
         $messages = (new \App\Models\EmailUserRowModel())->unified($actor);
         $sentMessages = (new \App\Models\EmailSentModel())->forUser($actor);
-        return view('main', ['content' => view('email/account', ['account' => $account, 'accounts' => $accounts, 'messages' => $messages, 'sentMessages' => $sentMessages, 'spamSenders' => (new \App\Models\EmailSpamSenderModel())->forUser($actor)])]);
+        $calendarActive = false;
+        try {
+            $privateCalendar = (new \App\Models\PrivateGoogleServiceModel())->summary($actor);
+            $calendarActive = !empty($privateCalendar['connected']) || (new \App\Models\UserServiceModel())->googleSummary($actor) !== null;
+        } catch (Throwable $e) { /* Email remains available if calendar credentials need repair. */ }
+        return view('main', ['content' => view('email/account', ['account' => $account, 'accounts' => $accounts, 'messages' => $messages, 'sentMessages' => $sentMessages,
+            'calendarActive' => $calendarActive, 'meetings' => (new \App\Models\EmailMeetingModel())->forUser($actor),
+            'spamSenders' => (new \App\Models\EmailSpamSenderModel())->forUser($actor)])]);
     }
 
     public function sent(): string

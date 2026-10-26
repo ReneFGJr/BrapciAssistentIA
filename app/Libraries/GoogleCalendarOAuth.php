@@ -7,7 +7,13 @@ class GoogleCalendarOAuth
 {
     public function __construct(private ?PrivateGoogleServiceModel $model = null) {}
 
-    public const SCOPE = 'https://www.googleapis.com/auth/calendar.events.readonly';
+    public const READ_SCOPE = 'https://www.googleapis.com/auth/calendar.events.readonly';
+    public const SCOPE = 'https://www.googleapis.com/auth/calendar.events';
+
+    public static function canWrite(string $scope): bool
+    {
+        return array_intersect(explode(' ', $scope), [self::SCOPE, 'https://www.googleapis.com/auth/calendar']) !== [];
+    }
 
     public static function redirectUri(): string
     {
@@ -77,7 +83,7 @@ class GoogleCalendarOAuth
         if (!is_array($body) || !is_string($body['access_token'] ?? null) || $body['access_token'] === '') {
             throw new GoogleCalendarException('O Google retornou uma resposta de autorização inválida. Tente conectar novamente.');
         }
-        if (isset($body['scope']) && !in_array(self::SCOPE, explode(' ', $body['scope']), true)) {
+        if (isset($body['scope']) && !self::canWrite($body['scope']) && !in_array(self::READ_SCOPE, explode(' ', $body['scope']), true)) {
             throw new GoogleCalendarException('A permissão de leitura do Google Agenda não foi concedida. Conecte novamente e aceite essa permissão.');
         }
         return $body;
@@ -95,9 +101,11 @@ class GoogleCalendarOAuth
             ]);
             $model->saveTokens($connection, $tokens);
             $connection['access_token'] = $tokens['access_token'];
+            if (isset($tokens['scope'])) $connection['scope'] = $tokens['scope'];
         }
         // Always query the primary calendar of the account that actually authorized access.
         return ['id' => $connection['id'], 'user_id' => $connection['user_id'],
-            'email' => 'primary', 'access_token' => $connection['access_token']];
+            'email' => 'primary', 'access_token' => $connection['access_token'],
+            'can_write' => self::canWrite((string) ($connection['scope'] ?? ''))];
     }
 }
