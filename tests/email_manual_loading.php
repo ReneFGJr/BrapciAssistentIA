@@ -26,4 +26,15 @@ verifyService(!str_contains($html, 'Foreign private message') && substr_count($h
 $request->setGlobal('get', ['message' => (string) $stored['id']]);
 $html = $controller->account();
 verifyService(substr_count($html, 'class="mail-row ') === 1, 'Explicit message link loads only the requested saved email');
+$request->setGlobal('get', []);
+$db->table('email_user_row')->where('id', $stored['id'])->update(['email_data' => 'invalid-date', 'message_id' => null, 'email_context' => "Legacy text \xB1"]);
+$html = $controller->account();
+verifyService(str_contains($html, 'class="mail-row ') && str_contains($html, 'Data indisponível'), 'Malformed legacy date and UTF-8 do not blank the inbox');
+Config\Database::forge($db)->dropTable('email_sent');
+Config\Database::forge($db)->dropTable('email_meetings');
+$html = $controller->account();
+verifyService(str_contains($html, 'class="mail-row ') && str_contains($html, 'histórico de respostas') && str_contains($html, 'histórico de reuniões'), 'Missing optional history migrations leave messages accessible with visible warnings');
+Config\Database::forge($db)->dropTable('email_user_row');
+$html = $controller->account();
+verifyService(str_contains($html, 'Não foi possível abrir a caixa de entrada') && str_contains($html, 'writable/logs') && service('response')->getStatusCode() === 500, 'Unexpected inbox failure renders visible diagnostic page instead of blank screen');
 echo "Stored inbox loading: initial page, repeated navigation, ownership and direct message link passed.\n";

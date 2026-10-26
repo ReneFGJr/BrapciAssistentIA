@@ -25,6 +25,7 @@ foreach ($meetings ?? [] as $meeting) $meetingsByMessage[$meeting['message_id']]
 .mail-actions{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:8px;flex-wrap:nowrap;overflow-x:auto;margin:-28px -28px 0;padding:16px 28px;background:#1b273a;border-bottom:1px solid #354258;box-shadow:0 6px 12px #10182733}.mail-actions form{margin:0;flex-shrink:0}.mail-actions .mail-status-form{flex-wrap:nowrap;flex-shrink:1;min-width:0}.mail-actions .mail-status-form select{width:150px;min-width:100px;max-width:150px}.mail-actions button,.mail-actions a.btn{width:38px;height:38px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;padding:0}.mail-actions .form-select{height:38px}.mail-reply-compose{padding:18px;border:1px solid #43516a;border-radius:10px}.mail-reply-compose textarea{background:#152236;color:#fff;border-color:#43516a}.mail-content-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:24px}.mail-content-layout.has-files{grid-template-columns:minmax(0,1fr) 230px}.mail-files{align-self:start;margin-top:28px;padding:16px;background:#152235;border:1px solid #3c4960;border-radius:10px;min-width:0}.mail-files-list{font-size:12px;color:#b8c5d9;overflow-wrap:anywhere}.mail-file-link{display:grid;grid-template-columns:20px minmax(0,1fr);gap:6px;color:#c4d8ff;text-decoration:none;padding:12px 0;border-bottom:1px solid #354258}.mail-file-link:last-child{border-bottom:0}.mail-file-link small{grid-column:2;color:#aab8cd}.mail-file-link:hover span{text-decoration:underline}@media(max-width:1200px){.mail-content-layout.has-files{grid-template-columns:minmax(0,1fr)}.mail-files{margin-top:0}}@media(max-width:750px){.mail-message{max-height:85vh;max-height:85dvh;overflow:auto}.mail-actions{margin:-20px -20px 0;padding:12px 20px}}</style>
 <section class="col-12 p-3 text-light">
 <div class="mail-shell" id="mail-shell">
+    <?php foreach ($inboxWarnings ?? [] as $warning): ?><div class="alert alert-warning m-3" role="alert"><?= esc($warning) ?></div><?php endforeach; ?>
     <header class="mail-toolbar">
         <div><h1 class="h4 mb-1"><i class="bi bi-inbox me-2" aria-hidden="true"></i>Caixa de entrada unificada</h1><span class="small text-light">Todas as suas contas · <?= count($accounts) ?> conta(s)</span></div>
         <div class="d-flex gap-2 flex-wrap">
@@ -63,8 +64,8 @@ foreach ($meetings ?? [] as $meeting) $meetingsByMessage[$meeting['message_id']]
                     </span>
                     <?php if ($replyHistory($message) !== []): ?><span class="mail-preview text-success"><i class="bi bi-reply-fill" aria-hidden="true"></i> Já respondido</span><?php endif; ?>
                     <?php if (!empty($meetingsByMessage[$message['id']])): ?><span class="mail-preview text-info"><i class="bi bi-calendar-check" aria-hidden="true"></i> Reunião vinculada</span><?php endif; ?>
-                    <?php if ($message['email_data']): ?>
-                        <?php $receivedAt = new \DateTimeImmutable($message['email_data'], new \DateTimeZone('UTC')); ?>
+                    <?php $receivedAt = \App\Libraries\EmailDisplay::date($message['email_data'] ?? null); ?>
+                    <?php if ($receivedAt !== null): ?>
                         <time class="mail-preview" datetime="<?= esc($receivedAt->format(DATE_ATOM), 'attr') ?>" title="Horário de Brasília"><?= esc($receivedAt->setTimezone(new \DateTimeZone('America/Sao_Paulo'))->format('d/m/Y H:i')) ?></time>
                     <?php else: ?>
                         <span class="mail-preview">Data indisponível</span>
@@ -116,7 +117,7 @@ foreach ($meetings ?? [] as $meeting) $meetingsByMessage[$meeting['message_id']]
                     <?php $meetingData = json_decode($meeting['payload'], true); ?>
                     <section class="mail-reply-compose my-3" aria-label="Reunião vinculada">
                         <h3 class="h6 text-info"><i class="bi bi-calendar-check" aria-hidden="true"></i> Reunião criada no Google Agenda</h3>
-                        <p><?= esc($meetingData['summary']) ?><br><?= esc((new \DateTimeImmutable($meetingData['start']['dateTime']))->setTimezone(new \DateTimeZone('America/Sao_Paulo'))->format('d/m/Y H:i')) ?> até <?= esc((new \DateTimeImmutable($meetingData['end']['dateTime']))->setTimezone(new \DateTimeZone('America/Sao_Paulo'))->format('d/m/Y H:i')) ?> (Brasília)</p>
+                        <p><?= esc($meetingData['summary'] ?? 'Reunião') ?><br><?= esc(\App\Libraries\EmailDisplay::dateLabel($meetingData['start']['dateTime'] ?? null)) ?> até <?= esc(\App\Libraries\EmailDisplay::dateLabel($meetingData['end']['dateTime'] ?? null)) ?> (Brasília)</p>
                         <?php if (!empty($meetingData['location'])): ?><p>Local: <?= esc($meetingData['location']) ?></p><?php endif; ?>
                         <?php if ($meeting['event_url']): ?><a class="btn btn-sm btn-outline-info" target="_blank" rel="noopener noreferrer" href="<?= esc($meeting['event_url'], 'attr') ?>">Abrir evento no Google</a><?php endif; ?>
                         <?php if ($meeting['meet_url']): ?><a class="btn btn-sm btn-outline-light" target="_blank" rel="noopener noreferrer" href="<?= esc($meeting['meet_url'], 'attr') ?>">Entrar no Meet</a><?php elseif (isset($meetingData['conferenceData'])): ?><p class="small mt-2">Consulte o evento no Google para verificar o link Meet.</p><?php endif; ?>
@@ -128,7 +129,7 @@ foreach ($meetings ?? [] as $meeting) $meetingsByMessage[$meeting['message_id']]
                         <h3 class="h6 text-success"><i class="bi bi-check-circle" aria-hidden="true"></i> Este e-mail já foi respondido</h3>
                         <?php foreach ($responses as $response): ?>
                         <details class="mt-2" <?= $response === $responses[0] ? 'open' : '' ?>>
-                            <summary><?= $response['action'] === 'reply_all' ? 'Resposta a todos' : 'Resposta' ?> enviada em <?= esc((new \DateTimeImmutable($response['sent_at'], new \DateTimeZone('UTC')))->setTimezone(new \DateTimeZone('America/Sao_Paulo'))->format('d/m/Y H:i')) ?> (Brasília)</summary>
+                            <summary><?= $response['action'] === 'reply_all' ? 'Resposta a todos' : 'Resposta' ?> enviada em <?= esc(\App\Libraries\EmailDisplay::dateLabel($response['sent_at'] ?? null)) ?> (Brasília)</summary>
                             <p class="small mt-2 mb-1">De: <?= esc($response['sender']) ?> ? Para: <?= esc($response['recipients']) ?><?php if ($response['cc'] !== ''): ?> ? Cc: <?= esc($response['cc']) ?><?php endif; ?></p>
                             <div style="white-space:pre-wrap;overflow-wrap:anywhere"><?= esc($response['reply_text']) ?></div>
                         </details>

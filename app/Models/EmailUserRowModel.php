@@ -40,7 +40,7 @@ class EmailUserRowModel extends Model
             $fingerprint = $messageId !== '' ? 'id:' . $messageId : 'body:' . hash('sha256', json_encode([
                 mb_strtolower(trim($row['email_from'])), trim($row['email_title']), $row['email_data'],
                 trim(str_replace(["\r\n", "\r"], "\n", $row['email_context'])),
-            ], JSON_THROW_ON_ERROR));
+            ], JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE));
             $groups[$fingerprint][] = $row;
         }
         $visible = [];

@@ -151,6 +151,21 @@ class Email extends BaseController
 
     public function account(int $id = 0): string
     {
+        try {
+            return $this->renderAccount($id);
+        } catch (PageNotFoundException $e) { throw $e;
+        } catch (Throwable $e) {
+            $reference = bin2hex(random_bytes(6));
+            log_message('error', 'Email inbox rendering failed [{reference}]: {type} at {file}:{line}.', [
+                'reference' => $reference, 'type' => get_class($e), 'file' => $e->getFile(), 'line' => $e->getLine(),
+            ]);
+            $this->response->setStatusCode(500)->setHeader('Cache-Control', 'no-store');
+            return view('email/load_error', ['reference' => $reference]);
+        }
+    }
+
+    private function renderAccount(int $id): string
+    {
         $this->response->setHeader('Cache-Control', 'no-store')->setHeader('Referrer-Policy', 'no-referrer');
         $actor = (array) session('auth_user');
         $accounts = (new EmailUserModel())->forUser($actor);
@@ -168,7 +183,21 @@ class Email extends BaseController
             // Show the user's imported messages without contacting the mail server.
             $messages = (new \App\Models\EmailUserRowModel())->unified($actor);
         }
-        $sentMessages = $messages === [] ? [] : (new \App\Models\EmailSentModel())->forUser($actor);
+        $sentMessages = [];
+        $meetings = [];
+        $inboxWarnings = [];
+        if ($messages !== []) {
+            foreach (['sent' => \App\Models\EmailSentModel::class, 'meetings' => \App\Models\EmailMeetingModel::class] as $history => $modelClass) {
+                try {
+                    $records = (new $modelClass())->forUser($actor);
+                    if ($history === 'sent') $sentMessages = $records;
+                    else $meetings = $records;
+                } catch (Throwable $e) {
+                    log_message('error', 'Email inbox optional history {history} failed: {type} at {file}:{line}.', ['history' => $history, 'type' => get_class($e), 'file' => $e->getFile(), 'line' => $e->getLine()]);
+                    $inboxWarnings[] = ($history === 'sent' ? 'O histórico de respostas' : 'O histórico de reuniões') . ' está indisponível. Verifique as migrações do banco no servidor (php spark migrate). Os e-mails salvos continuam disponíveis.';
+                }
+            }
+        }
         $calendarActive = false;
         try {
             $privateCalendar = (new \App\Models\PrivateGoogleServiceModel())->summary($actor);
@@ -176,7 +205,7 @@ class Email extends BaseController
         } catch (Throwable $e) { /* Email remains available if calendar credentials need repair. */ }
         return view('main', ['content' => view('email/account', ['account' => $account, 'accounts' => $accounts, 'messages' => $messages, 'sentMessages' => $sentMessages,
             'calendarActive' => $calendarActive,
-            'meetings' => $messages === [] ? [] : (new \App\Models\EmailMeetingModel())->forUser($actor),
+            'meetings' => $meetings, 'inboxWarnings' => $inboxWarnings,
             'spamSenders' => (new \App\Models\EmailSpamSenderModel())->forUser($actor)])]);
     }
 
