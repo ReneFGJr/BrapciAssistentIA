@@ -29,43 +29,63 @@
         }
         return nl2br($html, false);
     }; ?>
-    <div class="table-responsive">
-        <table class="table table-dark align-middle">
-            <thead><tr><th>Data e hora</th><th>Título da reunião</th><th>Local</th><th>Situação</th><th>Assunto</th></tr></thead>
-            <tbody>
-                <?php if ($events === []): ?><tr><td colspan="5">Nenhuma reunião disponível nesta consulta.</td></tr><?php endif; ?>
-                <?php $currentDay = null; ?>
-                <?php $weekdays = [1 => 'Segunda-feira', 2 => 'Terça-feira', 3 => 'Quarta-feira', 4 => 'Quinta-feira', 5 => 'Sexta-feira', 6 => 'Sábado', 7 => 'Domingo']; ?>
-                <?php foreach ($events as $event): ?>
-                    <?php $start = (new \DateTimeImmutable($event['starts_at'], new \DateTimeZone('UTC')))->setTimezone(new \DateTimeZone($event['timezone'])); ?>
-                    <?php $location = trim((string) $event['location']); ?>
-                    <?php $locationUrl = filter_var($location, FILTER_VALIDATE_URL) && in_array(strtolower((string) parse_url($location, PHP_URL_SCHEME)), ['http', 'https'], true) ? $location : null; ?>
-                    <?php $eventDay = $start->format('Y-m-d'); ?>
-                    <?php if ($eventDay !== $currentDay): $currentDay = $eventDay; ?>
-                        <tr class="table-secondary"><th colspan="5" scope="rowgroup" class="text-dark"><?= esc($start->format('d/m/Y') . ' (' . $weekdays[(int) $start->format('N')] . ')') ?></th></tr>
-                    <?php endif; ?>
-                    <tr>
-                        <td><?= $event['all_day'] ? 'Dia inteiro' : esc($start->format('H:i')) ?><?php if (!$event['all_day']): ?><br><small><?= esc($event['timezone']) ?></small><?php endif; ?></td>
-                        <td style="min-width: 220px; overflow-wrap: anywhere;">
-                            <?php $eventTitle = trim((string) $event['title']) === '' || $event['title'] === 'Sem título' ? 'Título não fornecido pelo Google' : $event['title']; ?>
-                            <button class="btn btn-link link-info p-0 text-start fw-bold text-decoration-none" type="button" data-bs-toggle="modal" data-bs-target="#schedule-event-<?= (int) $event['id'] ?>" aria-label="<?= esc('Ver detalhes: ' . $eventTitle, 'attr') ?>"><?= esc($eventTitle) ?></button>
-                        </td>
-                        <td class="text-light" style="min-width: 160px; white-space: pre-wrap; overflow-wrap: anywhere;"><?php if ($locationUrl !== null): ?><a class="link-info" href="<?= esc($locationUrl, 'attr') ?>" target="_blank" rel="noopener noreferrer" title="Abrir link" aria-label="Abrir link"><i class="bi bi-link-45deg" aria-hidden="true"></i></a><?php else: ?><?= esc($location) ?><?php endif; ?></td>
-                        <td><?= $event['status'] === 'tentative' ? 'Provisória' : 'Confirmada' ?></td>
-                        <td>
-                            <form method="post" action="<?= site_url(($schedulePath ?? 'schedule') . '/' . $event['id'] . '/subject') ?>" class="d-flex gap-2">
-                                <?= csrf_field() ?>
-                                <select name="subject_id" class="form-select" aria-label="<?= esc('Assunto de ' . $event['title'], 'attr') ?>">
-                                    <option value="">Sem assunto</option>
-                                    <?php foreach ($subjects as $subject): ?><option value="<?= (int) $subject['id'] ?>" <?= (string) $event['subject_id'] === (string) $subject['id'] ? 'selected' : '' ?>><?= esc($subject['name']) ?></option><?php endforeach; ?>
-                                </select>
-                                <button class="btn btn-outline-info" type="submit">Salvar</button>
-                            </form>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
+    <?php
+    $weekdays = [1 => 'Segunda-feira', 2 => 'Terça-feira', 3 => 'Quarta-feira', 4 => 'Quinta-feira', 5 => 'Sexta-feira', 6 => 'Sábado', 7 => 'Domingo'];
+    $days = [];
+    foreach ($events as $event) {
+        $start = (new \DateTimeImmutable($event['starts_at'], new \DateTimeZone('UTC')))->setTimezone(new \DateTimeZone($event['timezone']));
+        $days[$start->format('Y-m-d')]['date'] = $start;
+        $days[$start->format('Y-m-d')]['events'][] = $event;
+    }
+    ksort($days);
+    ?>
+    <style>
+    .schedule-days{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;align-items:start;margin-bottom:24px}
+    .schedule-day{min-width:0;border:1px solid #354258;border-radius:12px;background:#172131;overflow:hidden}
+    .schedule-day-heading{padding:16px;background:#23334a;border-bottom:1px solid #354258;margin:0;font-size:16px;line-height:1.5;color:#d9e9ff}
+    .schedule-day-events{padding:14px;display:flex;flex-direction:column;gap:14px}
+    .schedule-event-card{min-width:0;border:1px solid #3b4d65;border-radius:8px;padding:14px;background:#1b273a;overflow-wrap:anywhere}
+    .schedule-event-title{font-size:16px;line-height:1.45;margin:12px 0}
+    .schedule-event-title button{font-size:inherit;line-height:inherit;overflow-wrap:anywhere}
+    .schedule-event-time{color:#8ee7ff;font-weight:600}.schedule-event-zone{font-size:11px;color:#b5c7db}
+    .schedule-event-subject{display:flex;gap:8px;margin-top:14px}.schedule-event-subject select{min-width:0;font-size:13px}.schedule-event-subject button{flex-shrink:0}
+    @media(max-width:1100px){.schedule-days{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:700px){.schedule-days{grid-template-columns:minmax(0,1fr)}}
+    </style>
+    <?php if ($events === []): ?><p class="border border-secondary rounded p-4">Nenhuma reunião disponível nesta consulta.</p><?php endif; ?>
+    <div class="schedule-days">
+        <?php foreach ($days as $dayKey => $day): ?>
+        <section class="schedule-day" aria-labelledby="schedule-day-<?= esc($dayKey, 'attr') ?>">
+            <h2 class="schedule-day-heading" id="schedule-day-<?= esc($dayKey, 'attr') ?>"><?= esc($day['date']->format('d/m/Y') . ' (' . $weekdays[(int) $day['date']->format('N')] . ')') ?></h2>
+            <div class="schedule-day-events">
+            <?php foreach ($day['events'] as $event): ?>
+                <?php
+                $start = (new \DateTimeImmutable($event['starts_at'], new \DateTimeZone('UTC')))->setTimezone(new \DateTimeZone($event['timezone']));
+                $end = (new \DateTimeImmutable($event['ends_at'], new \DateTimeZone('UTC')))->setTimezone(new \DateTimeZone($event['timezone']));
+                $location = trim((string) $event['location']);
+                $locationUrl = filter_var($location, FILTER_VALIDATE_URL) && in_array(strtolower((string) parse_url($location, PHP_URL_SCHEME)), ['http', 'https'], true) ? $location : null;
+                $eventTitle = trim((string) $event['title']) === '' || $event['title'] === 'Sem título' ? 'Título não fornecido pelo Google' : $event['title'];
+                ?>
+                <article class="schedule-event-card">
+                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                        <div><div class="schedule-event-time"><?= $event['all_day'] ? 'Dia inteiro' : esc($start->format('H:i') . ' – ' . ($start->format('Y-m-d') !== $end->format('Y-m-d') ? $end->format('d/m H:i') : $end->format('H:i'))) ?></div><?php if (!$event['all_day']): ?><div class="schedule-event-zone"><?= esc($event['timezone']) ?></div><?php endif; ?></div>
+                        <span class="badge <?= $event['status'] === 'tentative' ? 'text-bg-warning' : 'text-bg-success' ?>"><?= $event['status'] === 'tentative' ? 'Provisória' : 'Confirmada' ?></span>
+                    </div>
+                    <h3 class="schedule-event-title"><span class="visually-hidden">Título da reunião: </span><button class="btn btn-link link-info p-0 text-start fw-bold text-decoration-none" type="button" data-bs-toggle="modal" data-bs-target="#schedule-event-<?= (int) $event['id'] ?>" aria-label="<?= esc('Ver detalhes: ' . $eventTitle, 'attr') ?>"><?= esc($eventTitle) ?></button></h3>
+                    <?php if ($location !== ''): ?><div class="small text-light"><?php if ($locationUrl !== null): ?><a class="link-info" href="<?= esc($locationUrl, 'attr') ?>" target="_blank" rel="noopener noreferrer" title="Abrir link" aria-label="Abrir link"><i class="bi bi-link-45deg" aria-hidden="true"></i> Abrir link</a><?php else: ?><?= nl2br(esc($location), false) ?><?php endif; ?></div><?php endif; ?>
+                    <form method="post" action="<?= site_url(($schedulePath ?? 'schedule') . '/' . $event['id'] . '/subject') ?>" class="schedule-event-subject">
+                        <?= csrf_field() ?>
+                        <select name="subject_id" class="form-select" aria-label="<?= esc('Assunto de ' . $event['title'], 'attr') ?>">
+                            <option value="">Sem assunto</option>
+                            <?php foreach ($subjects as $subject): ?><option value="<?= (int) $subject['id'] ?>" <?= (string) ($event['subject_id'] ?? '') === (string) $subject['id'] ? 'selected' : '' ?>><?= esc($subject['name']) ?></option><?php endforeach; ?>
+                        </select>
+                        <button class="btn btn-sm btn-outline-info" type="submit">Salvar</button>
+                    </form>
+                </article>
+            <?php endforeach; ?>
+            </div>
+        </section>
+        <?php endforeach; ?>
     </div>
     <?php foreach ($events as $event): ?>
         <?php
