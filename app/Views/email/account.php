@@ -149,7 +149,7 @@ foreach ($meetings ?? [] as $meeting) $meetingsByMessage[$meeting['message_id']]
                     <div class="mail-content-layout">
                     <div class="mail-body-content">
                         <?php if (empty($message['email_html_loaded'])): ?><button type="button" class="btn btn-sm btn-outline-info mt-3 mail-html-fetch" data-account="<?= (int) $message['email_user_id'] ?>" data-message="<?= (int) $message['id'] ?>">Carregar formatação HTML original</button><?php endif; ?>
-                        <iframe class="mail-html-frame" title="Conteúdo HTML do e-mail" sandbox="allow-popups allow-popups-to-escape-sandbox" referrerpolicy="no-referrer" data-available="<?= !empty($message['email_html']) ? '1' : '0' ?>" data-html-url="<?= site_url('email/account/' . (int) $message['email_user_id'] . '/messages/' . (int) $message['id'] . '/html') ?>" style="width:100%;height:65vh;border:0;background:white;margin-top:20px" hidden></iframe>
+                        <iframe class="mail-html-frame" title="Conteúdo HTML do e-mail" sandbox="allow-popups allow-popups-to-escape-sandbox" referrerpolicy="no-referrer" data-available="<?= !empty($message['email_html']) || !empty($message['has_html']) ? '1' : '0' ?>" data-html-url="<?= site_url('email/account/' . (int) $message['email_user_id'] . '/messages/' . (int) $message['id'] . '/html') ?>" style="width:100%;height:65vh;border:0;background:white;margin-top:20px" hidden></iframe>
                         <div class="mail-body"><?= esc($message['email_context']) ?></div>
                     </div>
                     <div class="mail-files" data-files-message="<?= (int) $message['id'] ?>" aria-label="Anexos da mensagem">

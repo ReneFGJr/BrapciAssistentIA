@@ -8,6 +8,14 @@ use Throwable;
 
 class Email extends BaseController
 {
+    private string $inboxTrace = '';
+
+    private function inboxStage(string $stage): void
+    {
+        // A dedicated trace remains available even when production hides DEBUG logs.
+        @file_put_contents(WRITEPATH . 'logs/email-inbox-loading.log', gmdate('c') . ' [' . $this->inboxTrace . '] ' . $stage . PHP_EOL, FILE_APPEND | LOCK_EX);
+    }
+
     public function html(int $accountId, int $messageId)
     {
         $message = (new \App\Models\EmailUserRowModel())->findOwned($accountId, $messageId, (array) session('auth_user'));
@@ -151,6 +159,8 @@ class Email extends BaseController
 
     public function account(int $id = 0): string
     {
+        $this->inboxTrace = bin2hex(random_bytes(6));
+        $this->inboxStage('controller entered; memory_limit=' . ini_get('memory_limit'));
         static $shutdownRegistered = false;
         if (!$shutdownRegistered) {
             $shutdownRegistered = true;
@@ -170,6 +180,7 @@ class Email extends BaseController
         log_message('debug', 'Email inbox: controller entered; memory_limit={memory_limit}.', ['memory_limit' => ini_get('memory_limit')]);
         try {
             $html = $this->renderAccount($id);
+            $this->inboxStage('rendering complete; bytes=' . strlen($html) . '; peak_memory=' . memory_get_peak_usage(true));
             log_message('debug', 'Email inbox: rendering complete; bytes={bytes}; peak_memory={memory}.', ['bytes' => strlen($html), 'memory' => memory_get_peak_usage(true)]);
             return $html;
         } catch (PageNotFoundException $e) { throw $e;
@@ -188,6 +199,7 @@ class Email extends BaseController
         $this->response->setHeader('Cache-Control', 'no-store')->setHeader('Referrer-Policy', 'no-referrer');
         $actor = (array) session('auth_user');
         $accounts = (new EmailUserModel())->forUser($actor);
+        $this->inboxStage('accounts loaded');
         log_message('debug', 'Email inbox: accounts loaded.');
         $account = $id === 0
             ? ['id' => 0, 'email_user' => '', 'status' => 0, 'protocol' => 'imap']
@@ -207,6 +219,7 @@ class Email extends BaseController
             $messages = $inboxPage['messages'];
         }
         log_message('debug', 'Email inbox: stored messages loaded; count={count}.', ['count' => count($messages)]);
+        $this->inboxStage('stored messages loaded; count=' . count($messages));
         $sentMessages = [];
         $meetings = [];
         $inboxWarnings = [];
@@ -228,6 +241,7 @@ class Email extends BaseController
             $calendarActive = !empty($privateCalendar['connected']) || (new \App\Models\UserServiceModel())->googleSummary($actor) !== null;
         } catch (Throwable $e) { /* Email remains available if calendar credentials need repair. */ }
         log_message('debug', 'Email inbox: histories loaded; rendering view.');
+        $this->inboxStage('histories loaded; rendering view');
         return view('main', ['content' => view('email/account', ['account' => $account, 'accounts' => $accounts, 'messages' => $messages, 'sentMessages' => $sentMessages,
             'calendarActive' => $calendarActive, 'inboxPage' => $inboxPage,
             'meetings' => $meetings, 'inboxWarnings' => $inboxWarnings,

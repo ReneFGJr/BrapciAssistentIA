@@ -49,7 +49,13 @@ class EmailUserRowModel extends Model
         $page = max(1, min($pages, $page));
         $ids = array_column(array_slice($visible, ($page - 1) * $perPage, $perPage), 'id');
         unset($summary, $visible);
-        $messages = $ids === [] ? [] : $this->forUser($actor)->whereIn('id', $ids)->findAll();
+        $messages = [];
+        if ($ids !== []) {
+            $fields = $this->db->getFieldNames($this->table);
+            $this->forUser($actor)->select(array_values(array_diff($fields, ['email_html'])));
+            $this->select(in_array('email_html', $fields, true) ? "CASE WHEN email_html IS NOT NULL AND email_html <> '' THEN 1 ELSE 0 END AS has_html" : '0 AS has_html', false);
+            $messages = $this->whereIn('id', $ids)->findAll();
+        }
         return ['messages' => $messages, 'page' => $page, 'pages' => $pages, 'total' => $total];
     }
 
