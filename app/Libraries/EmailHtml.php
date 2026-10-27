@@ -28,6 +28,6 @@ class EmailHtml
             if ($node->hasAttribute('src') && !preg_match('~^data:image/(?:png|jpeg|gif|webp);base64,[a-z0-9+/=\s]+$~iD', $node->getAttribute('src'))) $node->removeAttribute('src');
         }
         $content = preg_replace('/<\?xml[^>]*>/', '', $dom->saveHTML());
-        return '<!doctype html><html><head><meta charset="utf-8"><meta name="referrer" content="no-referrer"><style>body{font-family:Arial,sans-serif;overflow-wrap:anywhere;margin:16px}img,table{max-width:100%}pre{white-space:pre-wrap}</style></head><body>' . $content . '</body></html>';
+        return '<!doctype html><html><head><meta charset="utf-8"><meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'; img-src data:; base-uri \'none\'; form-action \'none\'"><style>body{font-family:Arial,sans-serif;overflow-wrap:anywhere;margin:16px}img,table{max-width:100%}pre{white-space:pre-wrap}</style></head><body>' . $content . '</body></html>';
     }
 }

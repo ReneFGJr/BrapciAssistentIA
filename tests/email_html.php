@@ -6,7 +6,7 @@ use App\Libraries\EmailHtml;
 $html = '<html><head><meta http-equiv="refresh" content="0;url=https://evil.test"><base href="https://evil.test"><style>td{padding:8px}</style></head><body onload="alert(1)"><table><tr><td style="color:blue"><strong>Assinatura</strong><br>Universidade</td></tr></table><a href="https://example.test/profile">Perfil</a><a href="javascript:alert(1)">Inválido</a><img src="https://tracker.test/pixel" onerror="alert(1)"><script>alert(1)</script><iframe src="https://evil.test"></iframe><form action="https://evil.test"><input name="password"></form><svg onload="alert(1)"></svg></body></html>';
 $rendered = EmailHtml::document($html);
 verifyService(str_contains($rendered, '<strong>Assinatura</strong>') && str_contains($rendered, '<table>') && str_contains($rendered, 'color:blue'), 'HTML signature, tables and inline formatting preserved');
-foreach (['<script', '<iframe', '<form', '<input', '<svg', '<base', 'http-equiv', 'onload=', 'onerror=', 'javascript:', 'src="https://'] as $unsafe) {
+foreach (['<script', '<iframe', '<form', '<input', '<svg', '<base', 'http-equiv="refresh"', 'onload=', 'onerror=', 'javascript:', 'src="https://'] as $unsafe) {
     verifyService(!str_contains($rendered, $unsafe), 'Unsafe or remote HTML removed: ' . $unsafe);
 }
 verifyService(str_contains($rendered, 'href="https://example.test/profile"') && str_contains($rendered, 'noopener noreferrer'), 'Links remain usable without opener access');

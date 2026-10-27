@@ -94,6 +94,10 @@
             $eventTitle = trim((string) $event['title']) === '' || $event['title'] === 'Sem título' ? 'Título não fornecido pelo Google' : $event['title'];
             $eventLocation = trim((string) $event['location']);
             $eventLocationUrl = filter_var($eventLocation, FILTER_VALIDATE_URL) && in_array(strtolower((string) parse_url($eventLocation, PHP_URL_SCHEME)), ['http', 'https'], true) ? $eventLocation : null;
+            $meetingUrl = \App\Libraries\GoogleCalendarClient::meetingUrl($event);
+            $isMeet = parse_url($meetingUrl, PHP_URL_HOST) === 'meet.google.com';
+            $googleUrl = \App\Libraries\EmailMeeting::safeUrl($event['google_url'] ?? '', 'www.google.com');
+            $description = (string) ($event['description'] ?? '');
             $eventSubject = '';
             foreach ($subjects as $subject) {
                 if ((string) ($event['subject_id'] ?? '') === (string) $subject['id']) {
@@ -110,22 +114,34 @@
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
                     </div>
                     <div class="modal-body">
+                        <?php if ($meetingUrl !== ''): ?>
+                        <section class="border border-info rounded p-3 mb-4" aria-label="Videoconferência">
+                            <a class="btn btn-info rounded-pill px-4 py-2" href="<?= esc($meetingUrl, 'attr') ?>" target="_blank" rel="noopener noreferrer"><i class="bi bi-camera-video me-2" aria-hidden="true"></i><?= $isMeet ? 'Entrar com o Google Meet' : 'Entrar na reunião' ?></a>
+                            <div class="mt-2 text-break"><a class="link-info" href="<?= esc($meetingUrl, 'attr') ?>" target="_blank" rel="noopener noreferrer"><?= esc($meetingUrl) ?></a></div>
+                        </section>
+                        <?php endif; ?>
                         <dl class="row mb-0">
                             <dt class="col-sm-3">Início</dt>
                             <dd class="col-sm-9"><?= $event['all_day'] ? esc($eventStart->format('d/m/Y') . ' (dia inteiro)') : esc($eventStart->format('d/m/Y H:i') . ' ' . $event['timezone']) ?></dd>
                             <dt class="col-sm-3">Término</dt>
                             <dd class="col-sm-9"><?= $event['all_day'] ? esc($eventEnd->modify('-1 day')->format('d/m/Y') . ' (dia inteiro)') : esc($eventEnd->format('d/m/Y H:i') . ' ' . $event['timezone']) ?></dd>
-                            <dt class="col-sm-3">Local ou link</dt>
+                            <dt class="col-sm-3">Local</dt>
                             <dd class="col-sm-9 text-break"><?php if ($eventLocationUrl !== null): ?><a class="link-info" href="<?= esc($eventLocationUrl, 'attr') ?>" target="_blank" rel="noopener noreferrer"><?= esc($eventLocation) ?></a><?php else: ?><?= $eventLocation !== '' ? nl2br(esc($eventLocation), false) : 'Não informado' ?><?php endif; ?></dd>
                             <dt class="col-sm-3">Situação</dt>
                             <dd class="col-sm-9"><?= $event['status'] === 'tentative' ? 'Provisória' : 'Confirmada' ?></dd>
                             <dt class="col-sm-3">Assunto</dt>
                             <dd class="col-sm-9"><?= $eventSubject !== '' ? esc($eventSubject) : 'Sem assunto' ?></dd>
-                            <dt class="col-sm-3">Descrição</dt>
-                            <dd class="col-sm-9 text-break"><?= trim((string) ($event['description'] ?? '')) !== '' ? $renderDescription((string) $event['description']) : 'Sem descrição' ?></dd>
+                            <dt class="col-sm-3">Observações</dt>
+                            <dd class="col-sm-9 text-break">
+                                <?php if (trim($description) === ''): ?>Sem observações informadas pelo Google.
+                                <?php elseif (preg_match('~<(?:p|div|br|a|b|strong|ul|ol|li|table)\b~i', $description)): ?>
+                                <iframe title="Observações da reunião" sandbox="allow-popups allow-popups-to-escape-sandbox" referrerpolicy="no-referrer" srcdoc="<?= esc(\App\Libraries\EmailHtml::document($description), 'attr') ?>" style="width:100%;height:280px;border:1px solid #43516a;border-radius:8px;background:white"></iframe>
+                                <?php else: ?><?= $renderDescription($description) ?><?php endif; ?>
+                            </dd>
                         </dl>
                     </div>
                     <div class="modal-footer border-secondary">
+                        <?php if ($googleUrl !== ''): ?><a class="btn btn-outline-info" href="<?= esc($googleUrl, 'attr') ?>" target="_blank" rel="noopener noreferrer">Abrir no Google Agenda</a><?php endif; ?>
                         <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Fechar</button>
                     </div>
                 </div>

@@ -86,6 +86,8 @@ verifyService(EmailMeeting::safeUrl('javascript:alert(1)', 'meet.google.com') ==
 $db->query('CREATE TABLE test_subjects (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id VARCHAR(191), name VARCHAR(150))');
 require APPPATH . 'Database/Migrations/2026-09-30-000008_CreateServiceGoogleSchedule.php';
 (new App\Database\Migrations\CreateServiceGoogleSchedule(Config\Database::forge($db)))->up();
+require APPPATH . 'Database/Migrations/2026-10-27-000001_AddScheduleLinks.php';
+(new App\Database\Migrations\AddScheduleLinks(Config\Database::forge($db)))->up();
 $schedule = new App\Models\GoogleScheduleModel($db);
 $normalized = GoogleCalendarClient::normalize($created, 'America/Sao_Paulo');
 $schedule->storeCreated($service, $normalized);

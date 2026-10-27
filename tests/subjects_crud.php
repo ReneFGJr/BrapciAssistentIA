@@ -4,6 +4,8 @@ $db->query('PRAGMA foreign_keys = ON');
 $db->query('CREATE TABLE test_subjects (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id VARCHAR(191), name VARCHAR(150), UNIQUE(user_id, name))');
 require APPPATH . 'Database/Migrations/2026-09-30-000008_CreateServiceGoogleSchedule.php';
 (new App\Database\Migrations\CreateServiceGoogleSchedule(Config\Database::forge($db)))->up();
+require APPPATH . 'Database/Migrations/2026-10-27-000001_AddScheduleLinks.php';
+(new App\Database\Migrations\AddScheduleLinks(Config\Database::forge($db)))->up();
 $db->table('subjects')->insert(['user_id' => 'other', 'name' => 'Privado']);
 $foreignSubject = (int) $db->insertID();
 $calendar = new App\Models\GoogleScheduleModel($db);

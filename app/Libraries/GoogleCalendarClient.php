@@ -91,10 +91,31 @@ class GoogleCalendarClient
             'title' => mb_substr(trim((string) ($event['summary'] ?? '')) ?: 'Sem título', 0, 255),
             'description' => mb_substr((string) ($event['description'] ?? ''), 0, 10000),
             'location' => mb_substr((string) ($event['location'] ?? ''), 0, 10000),
+            'meeting_url' => self::meetingUrl($event),
+            'google_url' => \App\Libraries\EmailMeeting::safeUrl($event['htmlLink'] ?? '', 'www.google.com'),
             'starts_at' => $start->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s'),
             'ends_at' => $end->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s'),
             'all_day' => $allDay ? 1 : 0, 'timezone' => $timezone,
             'status' => ($event['status'] ?? '') === 'tentative' ? 'tentative' : 'confirmed',
         ];
+    }
+
+    public static function meetingUrl(array $event): string
+    {
+        $candidates = [];
+        foreach ($event['conferenceData']['entryPoints'] ?? [] as $entry) {
+            if (($entry['entryPointType'] ?? '') === 'video') $candidates[] = $entry['uri'] ?? '';
+        }
+        $candidates[] = $event['hangoutLink'] ?? '';
+        $candidates[] = $event['meeting_url'] ?? '';
+        $candidates[] = $event['location'] ?? '';
+        $description = html_entity_decode((string) ($event['description'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        if (preg_match('~https://meet\.google\.com/[a-z0-9-]+~i', $description, $match)) $candidates[] = $match[0];
+        foreach ($candidates as $url) {
+            if (!is_string($url)) continue;
+            $url = trim($url);
+            if (strlen($url) <= 2048 && filter_var($url, FILTER_VALIDATE_URL) && in_array(strtolower((string) parse_url($url, PHP_URL_SCHEME)), ['https', 'http'], true)) return $url;
+        }
+        return '';
     }
 }

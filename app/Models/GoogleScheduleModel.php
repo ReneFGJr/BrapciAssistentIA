@@ -35,7 +35,7 @@ class GoogleScheduleModel extends Model
                 $existing = $this->db->table($this->table)->where('service_id', $service['id'])
                     ->where('google_event_id', $event['google_event_id'])->get()->getRowArray();
                 $data = array_intersect_key($event, array_flip(['google_event_id', 'title', 'description',
-                    'location', 'starts_at', 'ends_at', 'all_day', 'timezone', 'status']));
+                    'location', 'meeting_url', 'google_url', 'starts_at', 'ends_at', 'all_day', 'timezone', 'status']));
                 $data += ['service_id' => $service['id'], 'user_id' => $service['user_id'],
                     'calendar_id' => $service['email'], 'synced_at' => $now, 'updated_at' => $now];
                 $builder = $this->db->table($this->table);

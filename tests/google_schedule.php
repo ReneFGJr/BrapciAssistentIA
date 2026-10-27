@@ -1,10 +1,13 @@
 <?php
 require __DIR__ . '/user_services.php';
+set_exception_handler(static function (Throwable $e): void { fwrite(STDERR, $e->getMessage() . PHP_EOL . $e->getTraceAsString()); exit(1); });
 require APPPATH . 'Database/Migrations/2026-09-30-000005_CreateSubjects.php';
 require APPPATH . 'Database/Migrations/2026-09-30-000008_CreateServiceGoogleSchedule.php';
 // Only subjects are needed here; no note associations are used.
 $db->query('CREATE TABLE test_subjects (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id VARCHAR(191), name VARCHAR(150))');
 (new App\Database\Migrations\CreateServiceGoogleSchedule(Config\Database::forge($db)))->up();
+require APPPATH . 'Database/Migrations/2026-10-27-000001_AddScheduleLinks.php';
+(new App\Database\Migrations\AddScheduleLinks(Config\Database::forge($db)))->up();
 $model->saveGoogle($actor, 'owner@example.test', 'Test_Api_Key');
 $connection = $model->googleConnection($actor);
 verifyService($model->hasGoogle($actor) && $connection['user_id'] === 'owner', 'Active service');
@@ -65,9 +68,26 @@ verifyService((bool) preg_match('/\d{2}\/\d{2}\/\d{4} \((Segunda|Terça|Quarta|Q
 verifyService(str_contains($html, 'Sala &lt;A&gt;') && str_contains($html, 'Título da reunião'), 'Location and explicit title heading rendered');
 $linked = array_replace($before[0], ['location' => 'https://meet.example.test/room', 'description' => 'Detalhes em https://meet.example.test/info']);
 $linkedHtml = view('schedule/index', ['events' => [$linked], 'subjects' => [], 'lastSync' => null, 'pager' => new class { public function links() { return ''; } }]);
-verifyService(substr_count($linkedHtml, 'target="_blank"') === 3
+verifyService(substr_count($linkedHtml, 'target="_blank"') >= 3
     && str_contains($linkedHtml, 'bi-link-45deg')
     && str_contains($linkedHtml, 'data-bs-target="#schedule-event-'), 'Event details open in a modal and URLs are external links');
+$conference = App\Libraries\GoogleCalendarClient::normalize([
+    'id' => 'conference-event', 'summary' => 'Reunião BPPQ', 'location' => 'Sala 204',
+    'description' => '<p><strong>Observação importante</strong><br>Levar documentos</p>',
+    'start' => ['dateTime' => $day . 'T09:00:00-03:00'], 'end' => ['dateTime' => $day . 'T10:00:00-03:00'],
+    'hangoutLink' => 'https://meet.google.com/abc-defg-hij',
+    'htmlLink' => 'https://www.google.com/calendar/event?eid=meeting',
+], 'America/Sao_Paulo');
+verifyService($conference['meeting_url'] === 'https://meet.google.com/abc-defg-hij' && $conference['location'] === 'Sala 204', 'Google conference URL retained separately from physical location');
+$db->resetTransStatus(); // Previous test intentionally failed and rolled back a snapshot.
+$calendar->replaceSnapshot($connection, [$conference]);
+$storedConference = $calendar->upcoming($connection)->first();
+verifyService($storedConference['meeting_url'] === $conference['meeting_url'] && $storedConference['google_url'] === $conference['google_url'], 'Conference and Google event links survive synchronization');
+$details = view('schedule/index', ['events' => [$storedConference], 'subjects' => [], 'lastSync' => null, 'pager' => new class { public function links() { return ''; } }]);
+verifyService(str_contains($details, 'Entrar com o Google Meet') && str_contains($details, 'Sala 204') && str_contains($details, 'Abrir no Google Agenda') && str_contains($details, 'Observações da reunião'), 'Details display video button, location, event link and isolated formatted notes');
+verifyService(str_contains(html_entity_decode(html_entity_decode($details, ENT_QUOTES | ENT_HTML5, 'UTF-8'), ENT_QUOTES | ENT_HTML5, 'UTF-8'), 'Observação importante'), 'Formatted observation content retained');
+verifyService(App\Libraries\GoogleCalendarClient::meetingUrl(['conferenceData' => ['entryPoints' => [['entryPointType' => 'phone', 'uri' => 'tel:123'], ['entryPointType' => 'video', 'uri' => 'https://meet.google.com/xyz-aaaa-bbb']]]]) === 'https://meet.google.com/xyz-aaaa-bbb', 'Video conference selected from entry points');
+verifyService(App\Libraries\GoogleCalendarClient::meetingUrl(['hangoutLink' => 'javascript:alert(1)']) === '', 'Unsafe conference link rejected');
 $missing = array_replace($before[0], ['title' => 'Sem título', 'location' => '']);
 $missingHtml = view('schedule/index', ['events' => [$missing], 'subjects' => [], 'lastSync' => null, 'pager' => new class { public function links() { return ''; } }]);
 verifyService(str_contains($missingHtml, 'Título não fornecido pelo Google') && !str_contains($missingHtml, 'Não informado pelo Google'), 'Missing location rendered empty');
