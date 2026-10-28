@@ -12,6 +12,10 @@ foreach (['<script', '<iframe', '<form', '<input', '<svg', '<base', 'http-equiv=
 verifyService(str_contains($rendered, 'href="https://example.test/profile"') && str_contains($rendered, 'noopener noreferrer'), 'Links remain usable without opener access');
 verifyService(str_contains(html_entity_decode(EmailHtml::document('<p>Olá, reunião e Ciência</p>'), ENT_QUOTES | ENT_HTML5, 'UTF-8'), 'Olá, reunião e Ciência'), 'UTF-8 preserved');
 verifyService(str_contains(EmailHtml::document(''), '<!doctype html>'), 'Empty HTML handled');
+$legacyCharset = '<html><head><meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"></head><body bgcolor="white" style="background:white;color:black"><p>Ação, reunião, Ciência e café</p></body></html>';
+$themed = EmailHtml::document($legacyCharset);
+verifyService(str_contains(html_entity_decode($themed, ENT_QUOTES | ENT_HTML5, 'UTF-8'), 'Ação, reunião, Ciência e café'), 'Stale HTML charset does not corrupt decoded UTF-8');
+verifyService(str_contains($themed, 'background:#172131!important;color:#ecf1fa!important') && str_contains($themed, 'background-color:transparent!important'), 'Reader applies theme even to white email backgrounds');
 $accountId = $emails->saveFor(null, $data, $actor);
 $rows->import($accountId, array_replace($message, ['email_html' => $html, 'email_html_loaded' => 1]), $actor);
 $stored = $rows->forAccount($accountId, $actor)->first();

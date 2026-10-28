@@ -1,6 +1,9 @@
 <?php
 require __DIR__ . '/email_inbox.php';
 $spam = new App\Models\EmailSpamSenderModel($db);
+$controller = file_get_contents(APPPATH . 'Controllers/Email.php');
+$spamAction = substr($controller, strpos($controller, 'public function spam('), strpos($controller, 'public function index()') - strpos($controller, 'public function spam('));
+verifyService(!str_contains($spamAction, "'?message='") && str_contains($spamAction, "site_url('email/account')"), 'Spam returns to full inbox instead of single-message view');
 $accountA = $emails->saveFor(null, array_replace($data, ['email_user' => 'spam-a@example.test']), $actor);
 $accountB = $emails->saveFor(null, array_replace($data, ['email_user' => 'spam-b@example.test']), $actor);
 $foreign = $emails->saveFor(null, array_replace($data, ['email_user' => 'spam-other@example.test']), $other);

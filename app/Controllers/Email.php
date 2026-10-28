@@ -371,12 +371,12 @@ class Email extends BaseController
     {
         try {
             (new \App\Models\EmailSpamSenderModel())->blockMessage($accountId, $messageId, (array) session('auth_user'));
-            return redirect()->to(site_url('email/account/' . $accountId) . '?message=' . $messageId)->with('success', 'Remetente adicionado à lista de SPAM. As mensagens desse remetente aparecem somente em SPAM.');
+            return redirect()->to(site_url('email/account'))->with('success', 'Remetente adicionado à lista de SPAM. As mensagens desse remetente aparecem somente em SPAM.');
         } catch (PageNotFoundException $e) { throw $e;
         } catch (InvalidArgumentException $e) {
-            return redirect()->to(site_url('email/account/' . $accountId) . '?message=' . $messageId)->with('error', $e->getMessage());
+            return redirect()->to(site_url('email/account'))->with('error', $e->getMessage());
         } catch (Throwable $e) {
-            return redirect()->to(site_url('email/account/' . $accountId) . '?message=' . $messageId)->with('error', 'Não foi possível adicionar o remetente à lista de SPAM.');
+            return redirect()->to(site_url('email/account'))->with('error', 'Não foi possível adicionar o remetente à lista de SPAM.');
         }
     }
 

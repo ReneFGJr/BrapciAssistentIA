@@ -7,6 +7,10 @@ class EmailHtml
     {
         $dom = new \DOMDocument('1.0', 'UTF-8');
         $previous = libxml_use_internal_errors(true);
+        // MIME content is already UTF-8. Old charset declarations in the email
+        // must not make libxml interpret those bytes as Latin-1 a second time.
+        $html = preg_replace('~<meta\b[^>]*>~i', '', $html);
+        $html = mb_encode_numericentity($html, [0x80, 0x10FFFF, 0, 0x1FFFFF], 'UTF-8');
         try { $dom->loadHTML('<?xml encoding="UTF-8">' . $html, LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING); }
         finally { libxml_clear_errors(); libxml_use_internal_errors($previous); }
         $allowed = explode(' ', 'html head body title style p div span br hr b strong i em u s strike small big sub sup blockquote pre code ul ol li dl dt dd h1 h2 h3 h4 h5 h6 table thead tbody tfoot tr td th colgroup col caption a img center font');
@@ -28,6 +32,6 @@ class EmailHtml
             if ($node->hasAttribute('src') && !preg_match('~^data:image/(?:png|jpeg|gif|webp);base64,[a-z0-9+/=\s]+$~iD', $node->getAttribute('src'))) $node->removeAttribute('src');
         }
         $content = preg_replace('/<\?xml[^>]*>/', '', $dom->saveHTML());
-        return '<!doctype html><html><head><meta charset="utf-8"><meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'; img-src data:; base-uri \'none\'; form-action \'none\'"><style>body{font-family:Arial,sans-serif;overflow-wrap:anywhere;margin:16px}img,table{max-width:100%}pre{white-space:pre-wrap}</style></head><body>' . $content . '</body></html>';
+        return '<!doctype html><html><head><meta charset="utf-8"><meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'; img-src data:; base-uri \'none\'; form-action \'none\'"><style>body{font-family:Arial,sans-serif;overflow-wrap:anywhere;margin:16px}img,table{max-width:100%}pre{white-space:pre-wrap}</style></head><body>' . $content . '<style>html,body{background:#172131!important;color:#ecf1fa!important;color-scheme:dark}body *{background-color:transparent!important;background-image:none!important;color:inherit!important}body a{color:#8bc5ff!important}</style></body></html>';
     }
 }
