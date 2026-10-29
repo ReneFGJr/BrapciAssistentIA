@@ -17,16 +17,48 @@ class Schedule extends BaseController
     {
         return (new UserServiceModel())->googleConnection((array) session('auth_user'));
     }
-    protected function syncConnections(): array
+    protected function syncConnections(array &$errors = []): array
     {
         $services = [];
-        $service = $this->active();
-        if ($service !== null) $services[] = $service;
+        try {
+            $service = $this->active();
+            if ($service !== null) $services[] = $service;
+        } catch (Throwable $exception) { $errors[] = $this->syncError($exception); }
         if ($this->readStoredForUser) {
-            $private = (new GoogleCalendarOAuth())->access((array) session('auth_user'));
-            if ($private !== null) $services[] = $private;
+            try {
+                $private = (new GoogleCalendarOAuth())->access((array) session('auth_user'));
+                if ($private !== null) $services[] = $private;
+            } catch (Throwable $exception) { $errors[] = $this->syncError($exception); }
         }
         return $services;
+    }
+    protected function syncError(Throwable $exception): string
+    {
+        log_message('error', 'Schedule synchronization failed: {type}', ['type' => $exception::class]);
+        return $exception instanceof \App\Libraries\GoogleCalendarException
+            ? $exception->getMessage() : 'Não foi possível atualizar uma das agendas. Os dados anteriores foram mantidos.';
+    }
+    protected function collect(array $services, GoogleScheduleModel $model, GoogleCalendarClient $client, array &$errors): int
+    {
+        $count = 0;
+        foreach ($services as $service) {
+            session()->set('schedule_attempt_' . $service['id'] . '_' . sha1($service['email']), time());
+            try {
+                $events = $client->fetch($service);
+                $model->replaceSnapshot($service, $events);
+                $count += count($events);
+            } catch (Throwable $exception) { $errors[] = $this->syncError($exception); }
+        }
+        return $count;
+    }
+    protected function dueConnections(array $services, GoogleScheduleModel $model, string $userId): array
+    {
+        return array_values(array_filter($services, static function (array $service) use ($model, $userId): bool {
+            $last = $model->selectMax('synced_at')->where('service_id', $service['id'])
+                ->where('user_id', $userId)->where('calendar_id', $service['email'])->first()['synced_at'] ?? null;
+            $attempt = (int) session()->get('schedule_attempt_' . $service['id'] . '_' . sha1($service['email']));
+            return ($last === null || strtotime($last . ' UTC') < time() - 300) && $attempt < time() - 60;
+        }));
     }
     public function index()
     {
@@ -37,6 +69,15 @@ class Schedule extends BaseController
             $userId = (string) ($actor['id'] ?? '');
             if ($userId === '') throw PageNotFoundException::forPageNotFound();
             $model = new GoogleScheduleModel();
+            $attemptKey = 'schedule_user_attempt_' . sha1($userId);
+            if ((int) session()->get($attemptKey) < time() - 60) {
+                session()->set($attemptKey, time());
+                $errors = [];
+                $services = $this->syncConnections($errors);
+                $due = $this->dueConnections($services, $model, $userId);
+                $this->collect($due, $model, new GoogleCalendarClient(), $errors);
+                if ($errors !== []) session()->setFlashdata('error', implode(' ', array_unique($errors)));
+            }
             return view('main', ['content' => view('schedule/index', [
                 'schedulePath' => $this->schedulePath, 'configurationPath' => $this->configurationPath,
                 'events' => $model->upcomingForUser($userId)->paginate(25), 'pager' => $model->pager,
@@ -80,21 +121,12 @@ class Schedule extends BaseController
     {
         $this->response->setHeader('Cache-Control', 'private, no-store, max-age=0');
         try {
-            $services = $this->syncConnections();
-            if ($services === []) return redirect()->to(site_url($this->configurationPath))->with('error', 'Cadastre e autorize um serviço Google Agenda.');
-            $snapshots = [];
-            $eventCount = 0;
-            $client = new GoogleCalendarClient();
-            foreach ($services as $service) {
-                session()->set('schedule_attempt_' . $service['id'] . '_' . sha1($service['email']), time());
-                $events = $client->fetch($service);
-                $eventCount += count($events);
-                $snapshots[] = [$service, $events];
-            }
-            $model = new GoogleScheduleModel();
-            foreach ($snapshots as [$service, $events]) {
-                $model->replaceSnapshot($service, $events);
-            }
+            $errors = [];
+            $services = $this->syncConnections($errors);
+            if ($services === [] && $errors === []) return redirect()->to(site_url($this->configurationPath))->with('error', 'Cadastre e autorize um serviço Google Agenda.');
+            $eventCount = $this->collect($services, new GoogleScheduleModel(), new GoogleCalendarClient(), $errors);
+            if ($errors !== []) return redirect()->to(site_url($this->schedulePath))->with('error',
+                $eventCount . ' evento(s) recebido(s). ' . implode(' ', array_unique($errors)));
             return redirect()->to(site_url($this->schedulePath))->with(
                 'success',
                 'Agenda sincronizada com o Google: ' . $eventCount . ' evento(s) recebido(s).'
