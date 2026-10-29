@@ -8,6 +8,18 @@ class GoogleScheduleModel extends Model
 {
     protected $table = 'service_google_schedule';
     protected $returnType = 'array';
+    private function compatibleEvent(array $event): array
+    {
+        // Deployments may still have the schema from before calendar links.
+        // Optional links must not prevent the event itself from being saved.
+        foreach (['meeting_url', 'google_url'] as $field) {
+            if (array_key_exists($field, $event) && !$this->db->fieldExists($field, $this->table)) {
+                unset($event[$field]);
+                log_message('warning', 'Schedule optional column missing: {field}. Run php spark migrate.', ['field' => $field]);
+            }
+        }
+        return $event;
+    }
     public function upcoming(array $service): self
     {
         return $this->where('service_id', $service['id'])->where('user_id', $service['user_id'])
@@ -36,6 +48,7 @@ class GoogleScheduleModel extends Model
                     ->where('google_event_id', $event['google_event_id'])->get()->getRowArray();
                 $data = array_intersect_key($event, array_flip(['google_event_id', 'title', 'description',
                     'location', 'meeting_url', 'google_url', 'starts_at', 'ends_at', 'all_day', 'timezone', 'status']));
+                $data = $this->compatibleEvent($data);
                 $data += ['service_id' => $service['id'], 'user_id' => $service['user_id'],
                     'calendar_id' => $service['email'], 'synced_at' => $now, 'updated_at' => $now];
                 $builder = $this->db->table($this->table);
@@ -55,7 +68,7 @@ class GoogleScheduleModel extends Model
     {
         $existing = $this->where('service_id', $service['id'])->where('user_id', $service['user_id'])->where('google_event_id', $event['google_event_id'])->first();
         $now = gmdate('Y-m-d H:i:s');
-        $data = $event + ['service_id' => $service['id'], 'user_id' => $service['user_id'], 'calendar_id' => $service['email'], 'synced_at' => $now, 'updated_at' => $now];
+        $data = $this->compatibleEvent($event) + ['service_id' => $service['id'], 'user_id' => $service['user_id'], 'calendar_id' => $service['email'], 'synced_at' => $now, 'updated_at' => $now];
         $builder = $this->db->table($this->table);
         $saved = $existing === null ? $builder->insert($data + ['created_at' => $now]) : $builder->where('id', $existing['id'])->where('user_id', $service['user_id'])->update($data);
         if (!$saved) throw new RuntimeException('A reunião foi criada no Google, mas a agenda local não foi atualizada. Atualize a agenda para consultá-la.');

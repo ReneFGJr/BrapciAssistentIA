@@ -32,11 +32,17 @@ class Schedule extends BaseController
         }
         return $services;
     }
-    protected function syncError(Throwable $exception): string
+    protected function syncError(Throwable $exception, string $stage = 'connection'): string
     {
-        log_message('error', 'Schedule synchronization failed: {type}', ['type' => $exception::class]);
+        $reference = bin2hex(random_bytes(4));
+        log_message('error', 'Schedule synchronization failed: ref={ref} stage={stage} type={type} code={code} file={file} line={line}', [
+            'ref' => $reference, 'stage' => $stage, 'type' => $exception::class, 'code' => $exception->getCode(),
+            'file' => $exception->getFile(), 'line' => $exception->getLine(),
+        ]);
         return $exception instanceof \App\Libraries\GoogleCalendarException
-            ? $exception->getMessage() : 'Não foi possível atualizar uma das agendas. Os dados anteriores foram mantidos.';
+            ? $exception->getMessage() : ($stage === 'storage'
+                ? 'Os eventos foram recebidos do Google, mas não puderam ser salvos. Verifique as migrações do banco no servidor (php spark migrate).'
+                : 'Não foi possível atualizar uma das agendas. Os dados anteriores foram mantidos.') . ' Referência: ' . $reference . '.';
     }
     protected function collect(array $services, GoogleScheduleModel $model, GoogleCalendarClient $client, array &$errors): int
     {
@@ -45,9 +51,14 @@ class Schedule extends BaseController
             session()->set('schedule_attempt_' . $service['id'] . '_' . sha1($service['email']), time());
             try {
                 $events = $client->fetch($service);
+            } catch (Throwable $exception) {
+                $errors[] = $this->syncError($exception, 'fetch');
+                continue;
+            }
+            try {
                 $model->replaceSnapshot($service, $events);
                 $count += count($events);
-            } catch (Throwable $exception) { $errors[] = $this->syncError($exception); }
+            } catch (Throwable $exception) { $errors[] = $this->syncError($exception, 'storage'); }
         }
         return $count;
     }
@@ -126,7 +137,7 @@ class Schedule extends BaseController
             if ($services === [] && $errors === []) return redirect()->to(site_url($this->configurationPath))->with('error', 'Cadastre e autorize um serviço Google Agenda.');
             $eventCount = $this->collect($services, new GoogleScheduleModel(), new GoogleCalendarClient(), $errors);
             if ($errors !== []) return redirect()->to(site_url($this->schedulePath))->with('error',
-                $eventCount . ' evento(s) recebido(s). ' . implode(' ', array_unique($errors)));
+                $eventCount . ' evento(s) atualizado(s) na agenda local. ' . implode(' ', array_unique($errors)));
             return redirect()->to(site_url($this->schedulePath))->with(
                 'success',
                 'Agenda sincronizada com o Google: ' . $eventCount . ' evento(s) recebido(s).'
