@@ -48,6 +48,29 @@ class KanbanModel extends Model
         return $this->insert(['user_id' => $userId] + array_intersect_key($data, array_flip(['title', 'description', 'status', 'priority'])));
     }
 
+    public function emailDraft(int $accountId, int $messageId, array $actor): array
+    {
+        $message = (new EmailUserRowModel($this->db))->findOwned($accountId, $messageId, $actor);
+        $url = site_url('email/account/' . $accountId) . '?message=' . $messageId;
+        return [
+            'title' => mb_substr(trim($message['email_title']) ?: 'Tarefa do e-mail', 0, 150),
+            'description' => 'Remetente: ' . $message['email_from'] . "\n\n"
+                . mb_substr(trim($message['email_context']), 0, 7000) . "\n\nE-mail de origem: " . $url,
+            'email_url' => $url,
+        ];
+    }
+
+    public function createForEmail(int $accountId, int $messageId, array $actor, array $data)
+    {
+        $draft = $this->emailDraft($accountId, $messageId, $actor);
+        $description = (string) ($data['description'] ?? '');
+        if (!str_contains($description, $draft['email_url'])) {
+            $description .= "\n\nE-mail de origem: " . $draft['email_url'];
+        }
+        $data['description'] = $description;
+        return $this->createFor((string) $actor['id'], $data);
+    }
+
     public function updateFor(int $id, string $userId, array $data): bool
     {
         if ($this->owned($id, $userId) === null) {

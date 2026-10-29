@@ -33,7 +33,20 @@ class Kanban extends BaseController
 
     public function new(): string
     {
-        return view('main', ['content' => view('kanban/form', ['item' => null])]);
+        $source = $this->emailSource();
+        $draft = $source === null ? [] : (new KanbanModel())->emailDraft($source[0], $source[1], (array) session('auth_user'));
+        return view('main', ['content' => view('kanban/form', ['item' => null, 'draft' => $draft, 'emailSource' => $source])]);
+    }
+
+    private function emailSource(bool $post = false): ?array
+    {
+        $account = $post ? $this->request->getPost('email_account') : $this->request->getGet('email_account');
+        $message = $post ? $this->request->getPost('email_message') : $this->request->getGet('email_message');
+        if ($account === null && $message === null) return null;
+        foreach ([$account, $message] as $value) {
+            if (!is_string($value) || !ctype_digit($value) || (int) $value < 1) throw PageNotFoundException::forPageNotFound();
+        }
+        return [(int) $account, (int) $message];
     }
 
     public function edit(int $id): string
@@ -56,6 +69,11 @@ class Kanban extends BaseController
     {
         $userId = $this->userId();
         $back = $id === null ? '/kanban/new' : '/kanban/' . $id . '/edit';
+        $source = $id === null ? $this->emailSource(true) : null;
+        if ($source !== null) {
+            (new KanbanModel())->emailDraft($source[0], $source[1], (array) session('auth_user'));
+            $back = site_url('kanban/new') . '?email_account=' . $source[0] . '&email_message=' . $source[1];
+        }
         $data = [];
         foreach (['title', 'description', 'status', 'priority'] as $field) {
             $value = $this->request->getPost($field);
@@ -66,7 +84,9 @@ class Kanban extends BaseController
         }
         $model = new KanbanModel();
         try {
-            $saved = $id === null ? $model->createFor($userId, $data) : $model->updateFor($id, $userId, $data);
+            $saved = $source !== null
+                ? $model->createForEmail($source[0], $source[1], (array) session('auth_user'), $data)
+                : ($id === null ? $model->createFor($userId, $data) : $model->updateFor($id, $userId, $data));
             if ($saved === false) {
                 return redirect()->to($back)->withInput()->with('error', implode(' ', $model->errors()) ?: 'Não foi possível salvar o cartão.');
             }

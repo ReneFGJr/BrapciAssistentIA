@@ -3,10 +3,15 @@
     <h1 class="h3 mb-4"><?= $item === null ? 'Novo cartão' : 'Editar cartão' ?></h1>
     <form method="post" action="<?= site_url($item === null ? 'kanban' : 'kanban/' . $item['id'] . '/update') ?>" class="card bg-dark border-secondary p-3">
         <?= csrf_field() ?>
+        <?php if (!empty($emailSource)): ?>
+        <input type="hidden" name="email_account" value="<?= (int) $emailSource[0] ?>">
+        <input type="hidden" name="email_message" value="<?= (int) $emailSource[1] ?>">
+        <p><a class="link-info" href="<?= esc($draft['email_url'], 'attr') ?>">Abrir e-mail de origem</a></p>
+        <?php endif; ?>
         <label for="kanban-title" class="form-label">Título</label>
-        <input id="kanban-title" name="title" class="form-control mb-3" maxlength="150" required value="<?= esc(old('title', $item['title'] ?? '', false), 'attr') ?>">
+        <input id="kanban-title" name="title" class="form-control mb-3" maxlength="150" required value="<?= esc(old('title', $item['title'] ?? $draft['title'] ?? '', false), 'attr') ?>">
         <label for="kanban-description" class="form-label">Descrição</label>
-        <textarea id="kanban-description" name="description" class="form-control mb-3" rows="5" maxlength="10000"><?= esc(old('description', $item['description'] ?? '', false)) ?></textarea>
+        <textarea id="kanban-description" name="description" class="form-control mb-3" rows="5" maxlength="10000"><?= esc(old('description', $item['description'] ?? $draft['description'] ?? '', false)) ?></textarea>
         <div class="row g-3">
             <?php foreach (['status' => ['Status', \App\Models\KanbanModel::STATUSES, 'todo'], 'priority' => ['Prioridade', \App\Models\KanbanModel::PRIORITIES, 'normal']] as $field => [$label, $options, $default]): ?>
                 <div class="col-md-6">
